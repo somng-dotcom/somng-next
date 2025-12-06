@@ -69,7 +69,29 @@ export default function LoginPage() {
             setError(error.message);
             setIsLoading(false);
         } else {
-            router.push('/dashboard');
+            // Check user role for redirection
+            // We need to fetch the profile manually here to get the role immediately
+            // because the context update might be slightly delayed or we want ensure redirect logic is self-contained
+            import('@/lib/supabase/client').then(async ({ createClient }) => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile?.role === 'admin') {
+                        router.push('/admin'); // Redirect to admin dashboard
+                    } else {
+                        router.push('/dashboard');
+                    }
+                } else {
+                    router.push('/dashboard'); // Fallback
+                }
+            });
         }
     };
 

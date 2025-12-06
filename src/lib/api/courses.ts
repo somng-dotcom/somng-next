@@ -124,6 +124,43 @@ export async function getCourseBySlug(slug: string) {
     return data;
 }
 
+export async function getCourseById(id: string) {
+    const { data, error } = await supabase
+        .from('courses')
+        .select(`
+            *,
+            modules (
+                id,
+                title,
+                description,
+                order_index,
+                lessons (
+                    id,
+                    title,
+                    content_type,
+                    duration_minutes,
+                    order_index,
+                    is_free_preview,
+                    content_url
+                )
+            )
+        `)
+        .eq('id', id)
+        .single();
+
+    if (error) throw error;
+
+    // Sort modules and lessons by order_index
+    if (data?.modules) {
+        data.modules.sort((a: any, b: any) => a.order_index - b.order_index);
+        data.modules.forEach((module: any) => {
+            module.lessons?.sort((a: any, b: any) => a.order_index - b.order_index);
+        });
+    }
+
+    return data;
+}
+
 export async function getCourseStats() {
     const { count: totalCourses } = await supabase
         .from('courses')
@@ -410,6 +447,119 @@ export async function updateCourseStatus(courseId: string, status: 'draft' | 'pu
         .from('courses')
         .update({ status })
         .eq('id', courseId);
+
+    if (error) throw error;
+}
+
+export async function createCourse(course: {
+    title: string;
+    slug: string;
+    description?: string;
+    level?: string;
+    price?: number;
+    is_premium?: boolean;
+    thumbnail_url?: string;
+}) {
+    const { data, error } = await supabase
+        .from('courses')
+        .insert(course)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function updateCourse(id: string, updates: any) {
+    const { data, error } = await supabase
+        .from('courses')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+// ============================================
+// MODULES & LESSONS MANAGEMENT
+// ============================================
+
+export async function createModule(module: {
+    course_id: string;
+    title: string;
+    description?: string;
+    order_index: number;
+}) {
+    const { data, error } = await supabase
+        .from('modules')
+        .insert(module)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function updateModule(id: string, updates: any) {
+    const { data, error } = await supabase
+        .from('modules')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteModule(id: string) {
+    const { error } = await supabase
+        .from('modules')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
+export async function createLesson(lesson: {
+    module_id: string;
+    title: string;
+    content_type: 'video' | 'text' | 'pdf' | 'quiz';
+    content_url?: string;
+    content_text?: string;
+    duration_minutes?: number;
+    order_index: number;
+    is_free_preview?: boolean;
+}) {
+    const { data, error } = await supabase
+        .from('lessons')
+        .insert(lesson)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function updateLesson(id: string, updates: any) {
+    const { data, error } = await supabase
+        .from('lessons')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteLesson(id: string) {
+    const { error } = await supabase
+        .from('lessons')
+        .delete()
+        .eq('id', id);
 
     if (error) throw error;
 }

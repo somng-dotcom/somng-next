@@ -12,15 +12,22 @@ import { Badge, LevelBadge } from '@/components/ui/Badge';
 import { TableRowSkeleton } from '@/components/ui/Skeleton';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
+import { getAdminCourses, deleteCourse } from '@/lib/api/courses';
+
+interface Course {
+    id: string;
+    title: string;
+    slug: string;
+    level: string;
+    status: string;
+    is_premium: boolean;
+    price: number | null;
+    enrollments?: { count: number }[];
+    enrolled_count?: number;
+}
 
 // Mock courses data
-const mockCourses = [
-    { id: '1', title: 'JAMB Mathematics', slug: 'jamb-mathematics', level: 'JAMB', status: 'published', is_premium: true, price: 5000, enrollments: 1250, created_at: '2024-01-15' },
-    { id: '2', title: 'WAEC Further Math', slug: 'waec-further-math', level: 'WAEC', status: 'published', is_premium: false, price: 0, enrollments: 890, created_at: '2024-01-20' },
-    { id: '3', title: 'SS2 Algebra', slug: 'ss2-algebra', level: 'SS2', status: 'draft', is_premium: true, price: 3500, enrollments: 456, created_at: '2024-02-01' },
-    { id: '4', title: 'SS1 Basic Math', slug: 'ss1-basic-math', level: 'SS1', status: 'published', is_premium: false, price: 0, enrollments: 678, created_at: '2024-02-10' },
-    { id: '5', title: 'JAMB Past Questions', slug: 'jamb-past-questions', level: 'JAMB', status: 'published', is_premium: true, price: 4500, enrollments: 2100, created_at: '2024-02-15' },
-];
+// Mock data removed
 
 const statusOptions = [
     { value: '', label: 'All Status' },
@@ -44,19 +51,30 @@ export default function AdminCoursesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [levelFilter, setLevelFilter] = useState('');
+    const [courses, setCourses] = useState<Course[]>([]);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedCourse, setSelectedCourse] = useState<typeof mockCourses[0] | null>(null);
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+    const loadCourses = async () => {
+        setIsLoading(true);
+        try {
+            const data = await getAdminCourses({
+                search: searchQuery,
+                status: statusFilter,
+                level: levelFilter,
+            });
+            setCourses(data as Course[]);
+        } catch (error) {
+            console.error('Failed to load courses:', error);
+            addToast({ type: 'error', title: 'Failed to load courses' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        setTimeout(() => setIsLoading(false), 500);
-    }, []);
-
-    const filteredCourses = mockCourses.filter((course) => {
-        const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = !statusFilter || course.status === statusFilter;
-        const matchesLevel = !levelFilter || course.level === levelFilter;
-        return matchesSearch && matchesStatus && matchesLevel;
-    });
+        loadCourses();
+    }, [searchQuery, statusFilter, levelFilter]);
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-NG', {
@@ -66,17 +84,26 @@ export default function AdminCoursesPage() {
         }).format(price);
     };
 
-    const handleDelete = (course: typeof mockCourses[0]) => {
+    const handleDelete = (course: Course) => {
         setSelectedCourse(course);
         setDeleteDialogOpen(true);
     };
 
-    const confirmDelete = () => {
-        addToast({
-            type: 'success',
-            title: 'Course deleted',
-            message: `"${selectedCourse?.title}" has been deleted.`,
-        });
+    const confirmDelete = async () => {
+        if (!selectedCourse) return;
+
+        try {
+            await deleteCourse(selectedCourse.id);
+            addToast({
+                type: 'success',
+                title: 'Course deleted',
+                message: `"${selectedCourse.title}" has been deleted.`,
+            });
+            loadCourses(); // Refresh list
+        } catch (error) {
+            console.error('Failed to delete course:', error);
+            addToast({ type: 'error', title: 'Failed to delete course' });
+        }
         setDeleteDialogOpen(false);
         setSelectedCourse(null);
     };
@@ -164,14 +191,14 @@ export default function AdminCoursesPage() {
                                         [...Array(5)].map((_, i) => (
                                             <TableRowSkeleton key={i} columns={6} />
                                         ))
-                                    ) : filteredCourses.length === 0 ? (
+                                    ) : courses.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="px-4 py-8 text-center text-[var(--muted-foreground)]">
                                                 No courses found
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredCourses.map((course) => (
+                                        courses.map((course) => (
                                             <tr key={course.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]/50">
                                                 <td className="px-4 py-3">
                                                     <div>
@@ -193,10 +220,10 @@ export default function AdminCoursesPage() {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3 text-[var(--foreground)]">
-                                                    {course.is_premium ? formatPrice(course.price) : 'Free'}
+                                                    {course.is_premium ? formatPrice(course.price || 0) : 'Free'}
                                                 </td>
                                                 <td className="px-4 py-3 text-[var(--foreground)]">
-                                                    {course.enrollments.toLocaleString()}
+                                                    {(course.enrolled_count || 0).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-end gap-2">

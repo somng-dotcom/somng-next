@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Profile } from '@/types/database';
@@ -14,6 +15,8 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
     updateProfile: (data: Partial<Profile>) => Promise<{ error: Error | null }>;
+    updatePassword: (password: string) => Promise<{ error: Error | null }>;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     const supabase = createClient();
+    const router = useRouter();
 
     // Fetch user profile
     const fetchProfile = async (userId: string) => {
@@ -115,10 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Sign out
     const signOut = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        setSession(null);
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        } finally {
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            router.push('/login');
+        }
     };
 
     // Update profile
@@ -141,6 +151,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Update password
+    const updatePassword = async (password: string) => {
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password,
+            });
+
+            if (error) throw error;
+            return { error: null };
+        } catch (error) {
+            return { error: error as Error };
+        }
+    };
+
+    // Refresh profile manually
+    const refreshProfile = async () => {
+        if (user) {
+            await fetchProfile(user.id);
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -152,6 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 signIn,
                 signOut,
                 updateProfile,
+                updatePassword,
+                refreshProfile,
             }}
         >
             {children}
