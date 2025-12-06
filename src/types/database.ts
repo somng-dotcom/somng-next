@@ -293,3 +293,92 @@ export interface StudentStats {
     total_lessons_completed: number;
     average_quiz_score: number;
 }
+
+export type Database = {
+    public: {
+        Tables: {
+            profiles: {
+                Row: Profile;
+                Insert: Partial<Profile>;
+                Update: Partial<Profile>;
+            };
+            categories: {
+                Row: Category;
+                Insert: Partial<Category>;
+                Update: Partial<Category>;
+            };
+            courses: {
+                Row: Course;
+                Insert: CreateCourseInput;
+                Update: UpdateCourseInput;
+            };
+            modules: {
+                Row: Module;
+                Insert: CreateModuleInput;
+                Update: Partial<CreateModuleInput>;
+            };
+            lessons: {
+                Row: Lesson;
+                Insert: CreateLessonInput;
+                Update: Partial<CreateLessonInput>;
+            };
+            quizzes: {
+                Row: Quiz;
+                Insert: CreateQuizInput;
+                Update: Partial<CreateQuizInput>;
+            };
+            quiz_options: {
+                Row: QuizOption;
+                Insert: Partial<QuizOption>;
+                Update: Partial<QuizOption>;
+            };
+            quiz_questions: {
+                Row: QuizQuestion;
+                Insert: CreateQuestionInput;
+                Update: Partial<CreateQuestionInput>;
+            };
+            enrollments: {
+                Row: Enrollment;
+                Insert: Partial<Enrollment>;
+                Update: Partial<Enrollment>;
+            };
+            lesson_progress: {
+                Row: LessonProgress;
+                Insert: Partial<LessonProgress>;
+                Update: Partial<LessonProgress>;
+            };
+            quiz_attempts: {
+                Row: QuizAttempt;
+                Insert: Partial<QuizAttempt>;
+                Update: Partial<QuizAttempt>;
+            };
+            payments: {
+                Row: Payment;
+                Insert: Partial<Payment>;
+                Update: Partial<Payment>;
+            };
+            subscriptions: {
+                Row: Subscription;
+                Insert: Partial<Subscription>;
+                Update: Partial<Subscription>;
+            };
+            support_tickets: {
+                Row: SupportTicket;
+                Insert: Partial<SupportTicket>;
+                Update: Partial<SupportTicket>;
+            };
+        };
+        Views: {
+            [_ in never]: never;
+        };
+        Functions: {
+            [_ in never]: never;
+        };
+        Enums: {
+            [_ in never]: never;
+        };
+        CompositeTypes: {
+            [_ in never]: never;
+        };
+    };
+};

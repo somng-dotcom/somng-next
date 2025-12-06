@@ -11,89 +11,22 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
 import { CardSkeleton } from '@/components/ui/Skeleton';
+import { getCourses } from '@/lib/api/courses';
 import { CourseLevel } from '@/types/database';
 
-// Mock courses data
-const mockCourses = [
-    {
-        id: '1',
-        title: 'JAMB Mathematics - Complete Course',
-        slug: 'jamb-mathematics-complete',
-        description: 'Master all JAMB mathematics topics with comprehensive lessons, practice questions, and mock exams.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400',
-        level: 'JAMB' as CourseLevel,
-        is_premium: true,
-        price: 5000,
-        duration_hours: 40,
-        lessons_count: 30,
-        enrolled_count: 1250,
-    },
-    {
-        id: '2',
-        title: 'WAEC Further Mathematics',
-        slug: 'waec-further-mathematics',
-        description: 'Complete preparation for WAEC Further Mathematics with solved past questions and step-by-step explanations.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400',
-        level: 'WAEC' as CourseLevel,
-        is_premium: false,
-        price: 0,
-        duration_hours: 25,
-        lessons_count: 20,
-        enrolled_count: 890,
-    },
-    {
-        id: '3',
-        title: 'SS2 Algebra and Calculus',
-        slug: 'ss2-algebra-calculus',
-        description: 'Learn algebra and introductory calculus concepts for SS2 students with practical examples.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1596495577886-d920f1fb7238?w=400',
-        level: 'SS2' as CourseLevel,
-        is_premium: true,
-        price: 3500,
-        duration_hours: 20,
-        lessons_count: 15,
-        enrolled_count: 456,
-    },
-    {
-        id: '4',
-        title: 'SS1 Basic Mathematics',
-        slug: 'ss1-basic-mathematics',
-        description: 'Foundation mathematics course covering all SS1 topics with interactive exercises.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=400',
-        level: 'SS1' as CourseLevel,
-        is_premium: false,
-        price: 0,
-        duration_hours: 18,
-        lessons_count: 12,
-        enrolled_count: 678,
-    },
-    {
-        id: '5',
-        title: 'JAMB Past Questions & Solutions',
-        slug: 'jamb-past-questions',
-        description: 'Comprehensive coverage of JAMB past questions from the last 10 years with detailed solutions.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400',
-        level: 'JAMB' as CourseLevel,
-        is_premium: true,
-        price: 4500,
-        duration_hours: 35,
-        lessons_count: 28,
-        enrolled_count: 2100,
-    },
-    {
-        id: '6',
-        title: 'WAEC Mathematics Core',
-        slug: 'waec-mathematics-core',
-        description: 'Essential mathematics preparation for WAEC examinations with practice tests.',
-        thumbnail_url: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400',
-        level: 'WAEC' as CourseLevel,
-        is_premium: true,
-        price: 4000,
-        duration_hours: 30,
-        lessons_count: 24,
-        enrolled_count: 1560,
-    },
-];
+interface Course {
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    thumbnail_url: string | null;
+    level: CourseLevel;
+    is_premium: boolean;
+    price: number;
+    duration_hours: number | null;
+    lessons_count: number;
+    enrolled_count: number;
+}
 
 const levelOptions = [
     { value: '', label: 'All Levels' },
@@ -111,27 +44,54 @@ const typeOptions = [
 ];
 
 function CoursesContent() {
-    const { profile, signOut, isLoading: authLoading } = useAuth();
+    const { profile, signOut } = useAuth();
     const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(true);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedLevel, setSelectedLevel] = useState(searchParams.get('level') || '');
     const [selectedType, setSelectedType] = useState(searchParams.get('type') || '');
 
+    // Sync state with URL params when they change (e.g. navigation links)
     useEffect(() => {
-        // Simulate loading
-        setTimeout(() => setIsLoading(false), 500);
-    }, []);
+        setSelectedLevel(searchParams.get('level') || '');
+        setSelectedType(searchParams.get('type') || '');
+    }, [searchParams]);
 
-    // Filter courses
-    const filteredCourses = mockCourses.filter((course) => {
-        const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesLevel = !selectedLevel || course.level === selectedLevel;
-        const matchesType = !selectedType ||
-            (selectedType === 'free' && !course.is_premium) ||
-            (selectedType === 'premium' && course.is_premium);
-        return matchesSearch && matchesLevel && matchesType;
+    useEffect(() => {
+        async function loadCourses() {
+            try {
+                const data = await getCourses({
+                    level: selectedLevel || undefined,
+                    isPremium: selectedType === 'premium' ? true : selectedType === 'free' ? false : undefined,
+                    search: searchQuery || undefined,
+                });
+                console.log('Fetched courses:', data);
+                setCourses(data as Course[]);
+            } catch (error: any) {
+                console.error('Error loading courses:', {
+                    message: error.message || 'Unknown error',
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code,
+                    fullError: error
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        loadCourses();
+    }, [selectedLevel, selectedType, searchQuery]);
+
+    // Filter courses by search (client-side for instant feedback)
+    const filteredCourses = courses.filter((course) => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            course.title.toLowerCase().includes(query) ||
+            (course.description && course.description.toLowerCase().includes(query))
+        );
     });
 
     const formatPrice = (price: number) => {
@@ -230,7 +190,7 @@ function CoursesContent() {
                                         {/* Thumbnail */}
                                         <div className="relative h-44">
                                             <img
-                                                src={course.thumbnail_url}
+                                                src={course.thumbnail_url || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400'}
                                                 alt={course.title}
                                                 className="w-full h-full object-cover"
                                             />
@@ -257,13 +217,13 @@ function CoursesContent() {
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                                     </svg>
-                                                    {course.lessons_count} lessons
+                                                    {course.lessons_count || 0} lessons
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
-                                                    {course.duration_hours}h
+                                                    {course.duration_hours || 0}h
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -332,4 +292,3 @@ export default function CoursesPage() {
         </Suspense>
     );
 }
-

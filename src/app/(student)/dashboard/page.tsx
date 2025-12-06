@@ -6,58 +6,121 @@ import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Progress, CourseProgress } from '@/components/ui/Progress';
-import { Badge, LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
+import { CourseProgress } from '@/components/ui/Progress';
+import { LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CardSkeleton, StatsSkeleton } from '@/components/ui/Skeleton';
+import { getUserEnrollments, getCourseProgress, getCourses } from '@/lib/api/courses';
+import { getUserQuizStats } from '@/lib/api/quiz';
+import { CourseLevel } from '@/types/database';
 
-// Mock data - will be replaced with real data from Supabase
-const mockEnrolledCourses = [
-    {
-        id: '1',
-        title: 'JAMB Mathematics - Complete Course',
-        slug: 'jamb-mathematics-complete',
-        thumbnail_url: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400',
-        level: 'JAMB' as const,
-        is_premium: true,
-        progress: { completed: 12, total: 30 },
-    },
-    {
-        id: '2',
-        title: 'WAEC Further Mathematics',
-        slug: 'waec-further-mathematics',
-        thumbnail_url: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400',
-        level: 'WAEC' as const,
-        is_premium: false,
-        progress: { completed: 5, total: 20 },
-    },
-    {
-        id: '3',
-        title: 'SS2 Algebra and Calculus',
-        slug: 'ss2-algebra-calculus',
-        thumbnail_url: 'https://images.unsplash.com/photo-1596495577886-d920f1fb7238?w=400',
-        level: 'SS2' as const,
-        is_premium: true,
-        progress: { completed: 8, total: 15 },
-    },
-];
-
-const mockStats = {
-    enrolledCourses: 3,
-    completedLessons: 25,
-    quizzesTaken: 12,
-    averageScore: 78,
-};
+interface EnrolledCourse {
+    id: string;
+    title: string;
+    slug: string;
+    thumbnail_url: string | null;
+    level: CourseLevel;
+    is_premium: boolean;
+    progress: { completed: number; total: number };
+    currentLessonId?: string; // Add this
+}
 
 export default function DashboardPage() {
-    const { user, profile, isLoading, signOut } = useAuth();
+    const { user, profile, isLoading: authLoading, signOut } = useAuth();
     const [mounted, setMounted] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+    const [stats, setStats] = useState({
+        enrolledCourses: 0,
+        completedLessons: 0,
+        quizzesTaken: 0,
+        averageScore: 0,
+    });
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    if (!mounted || isLoading) {
+    useEffect(() => {
+        async function loadDashboardData() {
+            if (!user) return;
+
+            try {
+                // Fetch user enrollments
+                const enrollments = await getUserEnrollments(user.id);
+
+                // Get progress for each enrolled course
+                const coursesWithProgress = await Promise.all(
+                    enrollments.map(async (enrollment) => {
+                        const course = enrollment.course;
+                        if (!course) return null;
+
+                        const progress = await getCourseProgress(user.id, course.id);
+
+                        // Find the first lesson ID to link to
+                        let firstLessonId = '';
+                        // accessing via 'any' because strict typing of deeply nested join might be tricky without full generation
+                        const modules = (course as any).modules;
+                        if (modules && modules.length > 0) {
+                            // Modules are already sorted by getUserEnrollments
+                            const firstModule = modules[0];
+                            if (firstModule.lessons && firstModule.lessons.length > 0) {
+                                firstLessonId = firstModule.lessons[0].id;
+                            }
+                        }
+
+                        // Ideally we'd find the *next* uncompleted lesson here, but first lesson is a safe fallback
+                        // to prevent 404s.
+
+                        return {
+                            id: course.id,
+                            title: course.title,
+                            slug: course.slug,
+                            thumbnail_url: course.thumbnail_url,
+                            level: course.level as CourseLevel,
+                            is_premium: course.is_premium,
+                            progress: {
+                                completed: progress.completed,
+                                total: progress.total,
+                            },
+                            currentLessonId: firstLessonId
+                        };
+                    })
+                );
+
+                setEnrolledCourses(coursesWithProgress.filter(Boolean) as EnrolledCourse[]);
+
+                // Calculate stats
+                const totalCompleted = coursesWithProgress.reduce(
+                    (sum, c) => sum + (c?.progress.completed || 0), 0
+                );
+
+                const quizStats = await getUserQuizStats(user.id);
+
+                setStats({
+                    enrolledCourses: enrollments.length,
+                    completedLessons: totalCompleted,
+                    quizzesTaken: quizStats.totalTaken,
+                    averageScore: quizStats.averageScore,
+                });
+            } catch (error: any) {
+                console.error('Error loading dashboard data:', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        if (user && mounted) {
+            loadDashboardData();
+        }
+    }, [user, mounted]);
+
+    if (!mounted || authLoading) {
         return (
             <div className="min-h-screen bg-[var(--background)]">
                 <Sidebar role="student" />
@@ -86,7 +149,6 @@ export default function DashboardPage() {
     }
 
     const userName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
-
     const sidebarRole = profile?.role === 'admin' ? 'admin' : 'student';
 
     return (
@@ -126,7 +188,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-[var(--muted-foreground)]">Enrolled</p>
-                                    <p className="text-2xl font-bold text-[var(--foreground)]">{mockStats.enrolledCourses}</p>
+                                    <p className="text-2xl font-bold text-[var(--foreground)]">{stats.enrolledCourses}</p>
                                 </div>
                             </div>
                         </Card>
@@ -140,7 +202,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-[var(--muted-foreground)]">Lessons</p>
-                                    <p className="text-2xl font-bold text-[var(--foreground)]">{mockStats.completedLessons}</p>
+                                    <p className="text-2xl font-bold text-[var(--foreground)]">{stats.completedLessons}</p>
                                 </div>
                             </div>
                         </Card>
@@ -154,7 +216,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-[var(--muted-foreground)]">Quizzes</p>
-                                    <p className="text-2xl font-bold text-[var(--foreground)]">{mockStats.quizzesTaken}</p>
+                                    <p className="text-2xl font-bold text-[var(--foreground)]">{stats.quizzesTaken}</p>
                                 </div>
                             </div>
                         </Card>
@@ -168,7 +230,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-[var(--muted-foreground)]">Avg Score</p>
-                                    <p className="text-2xl font-bold text-[var(--foreground)]">{mockStats.averageScore}%</p>
+                                    <p className="text-2xl font-bold text-[var(--foreground)]">{stats.averageScore}%</p>
                                 </div>
                             </div>
                         </Card>
@@ -188,42 +250,69 @@ export default function DashboardPage() {
                             </Link>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {mockEnrolledCourses.map((course) => (
-                                <Link key={course.id} href={`/courses/${course.slug}/learn`}>
-                                    <Card hover padding="none" className="overflow-hidden">
-                                        {/* Thumbnail */}
-                                        <div className="relative h-40">
-                                            <img
-                                                src={course.thumbnail_url}
-                                                alt={course.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute top-3 left-3 flex gap-2">
-                                                <LevelBadge level={course.level} />
-                                                {course.is_premium ? <PremiumBadge /> : <FreeBadge />}
-                                            </div>
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="p-4">
-                                            <h3 className="font-semibold text-[var(--foreground)] line-clamp-2 mb-3">
-                                                {course.title}
-                                            </h3>
-
-                                            <CourseProgress
-                                                completedLessons={course.progress.completed}
-                                                totalLessons={course.progress.total}
-                                            />
-
-                                            <Button variant="primary" size="sm" className="w-full mt-4">
-                                                Continue
-                                            </Button>
-                                        </div>
-                                    </Card>
+                        {isLoading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[...Array(3)].map((_, i) => (
+                                    <CardSkeleton key={i} />
+                                ))}
+                            </div>
+                        ) : enrolledCourses.length === 0 ? (
+                            <Card className="text-center py-12">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-[var(--muted)] rounded-full flex items-center justify-center">
+                                    <svg className="w-8 h-8 text-[var(--muted-foreground)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-lg font-medium text-[var(--foreground)]">No enrolled courses yet</h3>
+                                <p className="mt-2 text-[var(--muted-foreground)] mb-4">
+                                    Start your mathematics journey by enrolling in a course
+                                </p>
+                                <Link href="/courses">
+                                    <Button>Browse Courses</Button>
                                 </Link>
-                            ))}
-                        </div>
+                            </Card>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {enrolledCourses.map((course) => (
+                                    <Link key={course.id} href={course.currentLessonId ? `/courses/${course.slug}/learn/${course.currentLessonId}` : `/courses/${course.slug}`}>
+                                        <Card hover padding="none" className="overflow-hidden">
+                                            {/* Thumbnail */}
+                                            <div className="relative h-40">
+                                                <img
+                                                    src={course.thumbnail_url || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400'}
+                                                    alt={course.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute top-3 left-3 flex gap-2">
+                                                    <LevelBadge level={course.level} />
+                                                    {course.is_premium ? <PremiumBadge /> : <FreeBadge />}
+                                                </div>
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-[var(--foreground)] line-clamp-2 mb-3">
+                                                    {course.title}
+                                                </h3>
+
+                                                <CourseProgress
+                                                    completedLessons={course.progress.completed}
+                                                    totalLessons={course.progress.total}
+                                                />
+
+                                                <Button
+                                                    variant={course.progress.completed === course.progress.total ? "outline" : "primary"}
+                                                    size="sm"
+                                                    className="w-full mt-4"
+                                                >
+                                                    {course.progress.completed === course.progress.total ? 'Review Course' : 'Continue'}
+                                                </Button>
+                                            </div>
+                                        </Card>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Quick Actions */}
