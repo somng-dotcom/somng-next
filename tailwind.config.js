@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors')
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: [
@@ -5,95 +7,82 @@ module.exports = {
         './src/components/**/*.{js,ts,jsx,tsx,mdx}',
         './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     ],
+    darkMode: "class",
     theme: {
         extend: {
             colors: {
-                // Primary brand colors - Math-inspired deep blue
-                primary: {
-                    50: '#eef5ff',
-                    100: '#d9e8ff',
-                    200: '#bcd7ff',
-                    300: '#8ebeff',
-                    400: '#599aff',
-                    500: '#3373ff',
-                    600: '#1a4ff5',
-                    700: '#143be1',
-                    800: '#1731b6',
-                    900: '#192f8f',
-                    950: '#141e57',
+                // Primary brand color: Gold
+                "primary": {
+                    ...colors.amber, // Using amber as base for gold-ish tones
+                    DEFAULT: "#D4AF37", // Metallic Gold
+                    600: "#D4AF37",
+                    700: "#B5952F", // Darker gold for hover
+                    100: "#F9F1D8", // Light gold tint
+                    50: "#FCF8EC",
                 },
-                // Secondary - Warm accent
-                secondary: {
-                    50: '#fff7ed',
-                    100: '#ffedd5',
-                    200: '#fed7aa',
-                    300: '#fdba74',
-                    400: '#fb923c',
-                    500: '#f97316',
-                    600: '#ea580c',
-                    700: '#c2410c',
-                    800: '#9a3412',
-                    900: '#7c2d12',
-                    950: '#431407',
+                // Secondary brand color: Orange (as requested)
+                "secondary": {
+                    ...colors.orange,
+                    DEFAULT: "#F97316", // Vibrant Orange
+                    500: "#F97316",
+                    600: "#EA580C",
                 },
-                // Success - Green
-                success: {
-                    50: '#ecfdf5',
-                    100: '#d1fae5',
-                    200: '#a7f3d0',
-                    300: '#6ee7b7',
-                    400: '#34d399',
-                    500: '#10b981',
-                    600: '#059669',
-                    700: '#047857',
-                    800: '#065f46',
-                    900: '#064e3b',
+                // Additional tokens mapped to specific colors or palettes
+                "background-light": "#FFFFFF", // White (secondary)
+                "background-dark": "#000000", // Black (primary background)
+                "surface-light": "#F8F8F8",
+                "surface-dark": "#121212", // Slightly lighter black for cards
+                "text-primary-light": "#000000", // Black text
+                "text-primary-dark": "#D4AF37", // Gold text for headings in dark mode
+                "text-secondary-light": "#525252",
+                "text-secondary-dark": "#A3A3A3", // Light gray
+                "border-light": "#E5E5E5",
+                "border-dark": "#262626", // Dark gray border
+
+                "success": {
+                    ...colors.green, // Green (secondary)
+                    DEFAULT: "#22C55E",
                 },
-                // Warning - Yellow
-                warning: {
-                    50: '#fffbeb',
-                    100: '#fef3c7',
-                    200: '#fde68a',
-                    300: '#fcd34d',
-                    400: '#fbbf24',
-                    500: '#f59e0b',
-                    600: '#d97706',
-                    700: '#b45309',
-                    800: '#92400e',
-                    900: '#78350f',
+                "danger": {
+                    ...colors.red,
+                    DEFAULT: "#EF4444",
+                    500: "#EF4444",
+                    600: "#DC2626",
                 },
-                // Error - Red
-                error: {
-                    50: '#fef2f2',
-                    100: '#fee2e2',
-                    200: '#fecaca',
-                    300: '#fca5a5',
-                    400: '#f87171',
-                    500: '#ef4444',
-                    600: '#dc2626',
-                    700: '#b91c1c',
-                    800: '#991b1b',
-                    900: '#7f1d1d',
+                "error": {
+                    ...colors.red,
+                    DEFAULT: "#EF4444",
                 },
-                // Dark mode background
-                dark: {
-                    50: '#f8fafc',
-                    100: '#f1f5f9',
-                    200: '#e2e8f0',
-                    300: '#cbd5e1',
-                    400: '#94a3b8',
-                    500: '#64748b',
-                    600: '#475569',
-                    700: '#334155',
-                    800: '#1e293b',
-                    900: '#0f172a',
-                    950: '#020617',
+                "warning": {
+                    ...colors.orange,
+                    DEFAULT: "#F59E0B",
                 },
+
+                // Keeping existing 'dark' palette but tweaking for true black feel
+                'dark': {
+                    50: '#fafafa',
+                    100: '#f5f5f5',
+                    200: '#e5e5e5',
+                    300: '#d4d4d4',
+                    400: '#a3a3a3',
+                    500: '#737373',
+                    600: '#525252',
+                    700: '#404040',
+                    800: '#262626',
+                    900: '#171717',
+                    950: '#000000',
+                }
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
-                display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-                mono: ['JetBrains Mono', 'monospace'],
+                "display": ["Lexend", "sans-serif"],
+                "sans": ["Inter", "system-ui", "sans-serif"],
+                "mono": ["JetBrains Mono", "monospace"],
+            },
+            borderRadius: {
+                "DEFAULT": "0.5rem",
+                "lg": "0.75rem",
+                "xl": "1rem",
+                "full": "9999px"
             },
             boxShadow: {
                 'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
@@ -104,9 +93,6 @@ module.exports = {
                 'fade-in': 'fadeIn 0.5s ease-in-out',
                 'slide-up': 'slideUp 0.5s ease-out',
                 'slide-down': 'slideDown 0.3s ease-out',
-                'scale-in': 'scaleIn 0.2s ease-out',
-                'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                'shimmer': 'shimmer 2s linear infinite',
             },
             keyframes: {
                 fadeIn: {
@@ -121,19 +107,6 @@ module.exports = {
                     '0%': { transform: 'translateY(-10px)', opacity: '0' },
                     '100%': { transform: 'translateY(0)', opacity: '1' },
                 },
-                scaleIn: {
-                    '0%': { transform: 'scale(0.95)', opacity: '0' },
-                    '100%': { transform: 'scale(1)', opacity: '1' },
-                },
-                shimmer: {
-                    '0%': { backgroundPosition: '-200% 0' },
-                    '100%': { backgroundPosition: '200% 0' },
-                },
-            },
-            backgroundImage: {
-                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-                'hero-pattern': 'linear-gradient(135deg, #1a4ff5 0%, #143be1 50%, #192f8f 100%)',
-                'card-gradient': 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
             },
         },
     },

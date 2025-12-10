@@ -4,58 +4,36 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { StatsSkeleton, CardSkeleton } from '@/components/ui/Skeleton';
-import { getAdminStats, getRecentEnrollments, getPopularCourses } from '@/lib/api/courses';
+import { getAdminStats, getRecentEnrollments } from '@/lib/api/courses';
 
 interface RecentEnrollment {
     id: string;
     enrolled_at: string;
-    profile: { full_name: string | null; email: string; avatar_url: string | null } | null;
-    course: { title: string; slug: string } | null;
-}
-
-interface PopularCourse {
-    id: string;
-    title: string;
-    slug: string;
-    thumbnail_url: string | null;
-    enrolled_count: number;
+    profile?: { full_name: string | null; email: string; avatar_url: string | null } | null;
+    course?: { title: string; slug: string } | null;
 }
 
 export default function AdminDashboardPage() {
     const { profile, signOut } = useAuth();
+    const [stats, setStats] = useState<any>(null);
+    const [enrollments, setEnrollments] = useState<RecentEnrollment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [stats, setStats] = useState({
-        students: 0,
-        courses: 0,
-        enrollments: 0,
-        revenue: 0,
-    });
-    const [recentEnrollments, setRecentEnrollments] = useState<RecentEnrollment[]>([]);
-    const [popularCourses, setPopularCourses] = useState<PopularCourse[]>([]);
 
     useEffect(() => {
         async function loadAdminData() {
             try {
-                const [statsData, enrollmentsData, coursesData] = await Promise.all([
+                const [statsData, enrollmentsData] = await Promise.all([
                     getAdminStats(),
-                    getRecentEnrollments(5),
-                    getPopularCourses(5),
+                    getRecentEnrollments(5)
                 ]);
-
                 setStats(statsData);
-                setRecentEnrollments(enrollmentsData as RecentEnrollment[]);
-                setPopularCourses(coursesData as PopularCourse[]);
+                setEnrollments(enrollmentsData);
             } catch (error) {
-                console.error('Error loading admin data:', error);
+                console.error('Failed to load admin data:', error);
             } finally {
                 setIsLoading(false);
             }
         }
-
         loadAdminData();
     }, []);
 
@@ -63,280 +41,219 @@ export default function AdminDashboardPage() {
         return new Intl.NumberFormat('en-NG', {
             style: 'currency',
             currency: 'NGN',
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 0
         }).format(amount);
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-NG', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        });
+    const formatTimeAgo = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
     };
 
     return (
-        <div className="min-h-screen bg-[var(--background)]">
+        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
             <Sidebar role="admin" />
 
-            <div className="lg:ml-64">
-                <Header
-                    user={profile ? {
-                        name: profile.full_name || '',
-                        email: profile.email,
-                        avatar: profile.avatar_url || undefined,
-                        role: 'admin',
-                    } : null}
-                    onLogout={signOut}
-                />
-
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
-                    {/* Welcome Section */}
-                    <div className="mb-8">
-                        <h1 className="text-2xl lg:text-3xl font-display font-bold text-[var(--foreground)]">
-                            Admin Dashboard
-                        </h1>
-                        <p className="mt-2 text-[var(--muted-foreground)]">
-                            Overview of your learning platform
-                        </p>
+            <div className="flex-1 lg:ml-64">
+                {/* Top Header */}
+                <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 sticky top-0 z-20">
+                    <h2 className="text-gray-900 dark:text-white text-lg font-bold">Admin Dashboard</h2>
+                    <div className="flex items-center gap-4">
+                        {/* Search */}
+                        <div className="relative w-full max-w-sm hidden md:block">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xl">search</span>
+                            <input
+                                className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                                placeholder="Search courses, students..."
+                                type="search"
+                            />
+                        </div>
+                        {/* Notifications */}
+                        <button className="relative rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <span className="material-symbols-outlined">notifications</span>
+                            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary-600 ring-2 ring-white dark:ring-gray-900"></span>
+                        </button>
+                        {/* Avatar */}
+                        <div
+                            className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center cursor-pointer"
+                            onClick={signOut}
+                            title="Click to logout"
+                        >
+                            {profile?.avatar_url ? (
+                                <img src={profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                            ) : (
+                                <span className="text-primary-600 font-medium">{profile?.full_name?.charAt(0) || 'A'}</span>
+                            )}
+                        </div>
                     </div>
+                </header>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        {isLoading ? (
-                            [...Array(4)].map((_, i) => <StatsSkeleton key={i} />)
-                        ) : (
-                            <>
-                                <Card padding="md">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-primary-100 dark:bg-primary-900/50 rounded-xl">
-                                            <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-[var(--muted-foreground)]">Students</p>
-                                            <p className="text-2xl font-bold text-[var(--foreground)]">{stats.students}</p>
-                                        </div>
+                {/* Main Content */}
+                <main className="p-6 lg:p-8">
+                    <div className="mx-auto max-w-7xl">
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
+                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Courses</p>
+                                <p className="text-gray-900 dark:text-white text-3xl font-bold">
+                                    {isLoading ? '...' : stats?.totalCourses || 0}
+                                </p>
+                                <p className="text-green-600 dark:text-green-400 text-sm font-medium">+5% this month</p>
+                            </div>
+                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
+                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Students</p>
+                                <p className="text-gray-900 dark:text-white text-3xl font-bold">
+                                    {isLoading ? '...' : stats?.totalStudents?.toLocaleString() || 0}
+                                </p>
+                                <p className="text-green-600 dark:text-green-400 text-sm font-medium">+12% this month</p>
+                            </div>
+                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
+                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Revenue (Month)</p>
+                                <p className="text-gray-900 dark:text-white text-3xl font-bold">
+                                    {isLoading ? '...' : formatCurrency(stats?.totalRevenue || 0)}
+                                </p>
+                                <p className="text-green-600 dark:text-green-400 text-sm font-medium">+8% this month</p>
+                            </div>
+                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
+                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">New Enrollments (Week)</p>
+                                <p className="text-gray-900 dark:text-white text-3xl font-bold">
+                                    {isLoading ? '...' : stats?.newEnrollments || 0}
+                                </p>
+                                <p className="text-green-600 dark:text-green-400 text-sm font-medium">+20% this week</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+                            {/* Chart */}
+                            <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 p-6 lg:col-span-2">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-gray-900 dark:text-white text-lg font-bold">Enrollment Trends</h3>
+                                    <select className="text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-primary-500">
+                                        <option>Last 30 Days</option>
+                                        <option>Last 6 Months</option>
+                                        <option>Last Year</option>
+                                    </select>
+                                </div>
+                                <div className="flex min-h-[300px] flex-1 flex-col justify-end pt-4">
+                                    <svg fill="none" height="100%" preserveAspectRatio="none" viewBox="0 0 540 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M0 245.5C30 245.5 30 185.5 60 185.5C90 185.5 90 145.5 120 145.5C150 145.5 150 205.5 180 205.5C210 205.5 210 105.5 240 105.5C270 105.5 270 55.5 300 55.5C330 55.5 330 125.5 360 125.5C390 125.5 390 165.5 420 165.5C450 165.5 450 225.5 480 225.5C510 225.5 510 25.5 540 25.5V299.5H0V245.5Z" fill="url(#chart-gradient)" />
+                                        <path d="M0 245.5C30 245.5 30 185.5 60 185.5C90 185.5 90 145.5 120 145.5C150 145.5 150 205.5 180 205.5C210 205.5 210 105.5 240 105.5C270 105.5 270 55.5 300 55.5C330 55.5 330 125.5 360 125.5C390 125.5 390 165.5 420 165.5C450 165.5 450 225.5 480 225.5C510 225.5 510 25.5 540 25.5" stroke="#137fec" strokeLinecap="round" strokeWidth="3" />
+                                        <defs>
+                                            <linearGradient gradientUnits="userSpaceOnUse" id="chart-gradient" x1="270" x2="270" y1="25.5" y2="299.5">
+                                                <stop stopColor="#137fec" stopOpacity="0.2" />
+                                                <stop offset="1" stopColor="#137fec" stopOpacity="0" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div className="flex justify-between border-t border-gray-200 dark:border-gray-800 pt-2">
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Week 1</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Week 2</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Week 3</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Week 4</p>
                                     </div>
-                                </Card>
-
-                                <Card padding="md">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-success-100 dark:bg-success-900/50 rounded-xl">
-                                            <svg className="w-6 h-6 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-[var(--muted-foreground)]">Courses</p>
-                                            <p className="text-2xl font-bold text-[var(--foreground)]">{stats.courses}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card padding="md">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-secondary-100 dark:bg-secondary-900/50 rounded-xl">
-                                            <svg className="w-6 h-6 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-[var(--muted-foreground)]">Enrollments</p>
-                                            <p className="text-2xl font-bold text-[var(--foreground)]">{stats.enrollments}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card padding="md">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-warning-100 dark:bg-warning-900/50 rounded-xl">
-                                            <svg className="w-6 h-6 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-[var(--muted-foreground)]">Revenue</p>
-                                            <p className="text-2xl font-bold text-[var(--foreground)]">{formatCurrency(stats.revenue)}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Recent Enrollments */}
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-[var(--foreground)]">Recent Enrollments</h2>
-                                <Link href="/admin/students">
-                                    <Button variant="ghost" size="sm">View all</Button>
-                                </Link>
+                                </div>
                             </div>
 
-                            {isLoading ? (
-                                <Card>
-                                    <div className="space-y-4">
-                                        {[...Array(5)].map((_, i) => (
-                                            <div key={i} className="flex items-center gap-3">
-                                                <div className="skeleton w-10 h-10 rounded-full" />
-                                                <div className="flex-1">
-                                                    <div className="skeleton h-4 w-32 mb-1" />
-                                                    <div className="skeleton h-3 w-48" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </Card>
-                            ) : recentEnrollments.length === 0 ? (
-                                <Card className="text-center py-8">
-                                    <p className="text-[var(--muted-foreground)]">No enrollments yet</p>
-                                </Card>
-                            ) : (
-                                <Card>
-                                    <div className="space-y-4">
-                                        {recentEnrollments.map((enrollment) => (
-                                            <div key={enrollment.id} className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/50 rounded-full flex items-center justify-center">
+                            {/* Recent Enrollments */}
+                            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 p-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-gray-900 dark:text-white text-lg font-bold">Recent Enrollments</h3>
+                                    <Link href="/admin/students" className="text-primary-600 text-sm font-medium hover:underline">View All</Link>
+                                </div>
+                                <div className="flex flex-col gap-4">
+                                    {isLoading ? (
+                                        <div className="flex justify-center py-8">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+                                        </div>
+                                    ) : enrollments.length === 0 ? (
+                                        <p className="text-gray-500 text-sm text-center py-4">No recent enrollments</p>
+                                    ) : (
+                                        enrollments.map((enrollment) => (
+                                            <div key={enrollment.id} className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
                                                     {enrollment.profile?.avatar_url ? (
-                                                        <img
-                                                            src={enrollment.profile.avatar_url}
-                                                            alt=""
-                                                            className="w-10 h-10 rounded-full object-cover"
-                                                        />
+                                                        <img src={enrollment.profile.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
                                                     ) : (
-                                                        <span className="text-primary-600 font-medium">
-                                                            {(enrollment.profile?.full_name || enrollment.profile?.email || 'U')[0].toUpperCase()}
+                                                        <span className="text-primary-600 font-medium text-sm">
+                                                            {enrollment.profile?.full_name?.charAt(0) || 'U'}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-[var(--foreground)] truncate">
-                                                        {enrollment.profile?.full_name || enrollment.profile?.email}
+                                                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                                        {enrollment.profile?.full_name || 'Unknown Student'}
                                                     </p>
-                                                    <p className="text-sm text-[var(--muted-foreground)] truncate">
-                                                        Enrolled in {enrollment.course?.title}
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                        {enrollment.course?.title || 'Unknown Course'}
                                                     </p>
                                                 </div>
-                                                <p className="text-sm text-[var(--muted-foreground)]">
-                                                    {formatDate(enrollment.enrolled_at)}
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                    {formatTimeAgo(enrollment.enrolled_at)}
                                                 </p>
                                             </div>
-                                        ))}
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-
-                        {/* Popular Courses */}
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-[var(--foreground)]">Popular Courses</h2>
-                                <Link href="/admin/courses">
-                                    <Button variant="ghost" size="sm">Manage</Button>
-                                </Link>
+                                        ))
+                                    )}
+                                </div>
                             </div>
-
-                            {isLoading ? (
-                                <div className="space-y-4">
-                                    {[...Array(3)].map((_, i) => (
-                                        <CardSkeleton key={i} />
-                                    ))}
-                                </div>
-                            ) : popularCourses.length === 0 ? (
-                                <Card className="text-center py-8">
-                                    <p className="text-[var(--muted-foreground)]">No courses yet</p>
-                                    <Link href="/admin/courses/new">
-                                        <Button className="mt-4">Create Course</Button>
-                                    </Link>
-                                </Card>
-                            ) : (
-                                <div className="space-y-4">
-                                    {popularCourses.map((course, idx) => (
-                                        <Card key={course.id} padding="none" className="overflow-hidden">
-                                            <div className="flex items-center gap-4 p-4">
-                                                <div className="w-12 h-12 bg-[var(--muted)] rounded-lg flex items-center justify-center text-xl font-bold text-primary-600">
-                                                    {idx + 1}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-medium text-[var(--foreground)] truncate">
-                                                        {course.title}
-                                                    </h3>
-                                                    <p className="text-sm text-[var(--muted-foreground)]">
-                                                        {course.enrolled_count} students enrolled
-                                                    </p>
-                                                </div>
-                                                <Link href={`/admin/courses/${course.id}`}>
-                                                    <Button variant="ghost" size="sm">Edit</Button>
-                                                </Link>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
                         </div>
-                    </div>
 
-                    {/* Quick Actions */}
-                    <div className="mt-8">
-                        <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">Quick Actions</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Link href="/admin/courses/new">
-                                <Card hover padding="md" className="flex items-center gap-4">
-                                    <div className="p-3 bg-primary-100 dark:bg-primary-900/50 rounded-xl">
-                                        <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-[var(--foreground)]">Create Course</p>
-                                        <p className="text-sm text-[var(--muted-foreground)]">Add new course</p>
-                                    </div>
-                                </Card>
+                        {/* Quick Actions */}
+                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <Link
+                                href="/admin/courses/new"
+                                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                            >
+                                <div className="h-12 w-12 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-primary-600">add_circle</span>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">Create Course</p>
+                                    <p className="text-xs text-gray-500">Add a new course</p>
+                                </div>
                             </Link>
-
-                            <Link href="/admin/courses">
-                                <Card hover padding="md" className="flex items-center gap-4">
-                                    <div className="p-3 bg-success-100 dark:bg-success-900/50 rounded-xl">
-                                        <svg className="w-6 h-6 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-[var(--foreground)]">Manage Courses</p>
-                                        <p className="text-sm text-[var(--muted-foreground)]">Edit & publish</p>
-                                    </div>
-                                </Card>
+                            <Link
+                                href="/admin/students"
+                                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                            >
+                                <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-green-600">group_add</span>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">Manage Students</p>
+                                    <p className="text-xs text-gray-500">View all students</p>
+                                </div>
                             </Link>
-
-                            <Link href="/admin/students">
-                                <Card hover padding="md" className="flex items-center gap-4">
-                                    <div className="p-3 bg-secondary-100 dark:bg-secondary-900/50 rounded-xl">
-                                        <svg className="w-6 h-6 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-[var(--foreground)]">Students</p>
-                                        <p className="text-sm text-[var(--muted-foreground)]">View all students</p>
-                                    </div>
-                                </Card>
+                            <Link
+                                href="/admin/payments"
+                                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                            >
+                                <div className="h-12 w-12 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-yellow-600">payments</span>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">View Payments</p>
+                                    <p className="text-xs text-gray-500">Transaction history</p>
+                                </div>
                             </Link>
-
-                            <Link href="/admin/payments">
-                                <Card hover padding="md" className="flex items-center gap-4">
-                                    <div className="p-3 bg-warning-100 dark:bg-warning-900/50 rounded-xl">
-                                        <svg className="w-6 h-6 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-[var(--foreground)]">Payments</p>
-                                        <p className="text-sm text-[var(--muted-foreground)]">View transactions</p>
-                                    </div>
-                                </Card>
+                            <Link
+                                href="/admin/analytics"
+                                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                            >
+                                <div className="h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-purple-600">analytics</span>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">Analytics</p>
+                                    <p className="text-xs text-gray-500">View insights</p>
+                                </div>
                             </Link>
                         </div>
                     </div>

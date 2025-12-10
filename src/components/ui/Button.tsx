@@ -15,11 +15,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-md hover:shadow-lg',
-    secondary: 'bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700',
-    outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950',
+    primary: 'bg-primary text-white hover:bg-primary/90 active:bg-primary/80 shadow-md hover:shadow-lg',
+    secondary: 'bg-secondary text-white hover:bg-secondary/90 active:bg-secondary/80',
+    outline: 'border-2 border-primary text-primary hover:bg-primary/10 dark:hover:bg-primary/20',
     ghost: 'text-[var(--foreground)] hover:bg-[var(--muted)]',
-    danger: 'bg-error-600 text-white hover:bg-error-700 active:bg-error-800',
+    danger: 'bg-danger text-white hover:bg-danger/90 active:bg-danger/80',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -52,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 className={`
           inline-flex items-center justify-center gap-2 rounded-lg font-medium
           transition-all duration-200 focus:outline-none focus:ring-2 
-          focus:ring-offset-2 focus:ring-primary-500
+          focus:ring-offset-2 focus:ring-primary
           disabled:opacity-50 disabled:cursor-not-allowed
           ${variantStyles[variant]}
           ${sizeStyles[size]}

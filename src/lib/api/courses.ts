@@ -125,7 +125,10 @@ export async function getCourseBySlug(slug: string) {
 }
 
 export async function getCourseById(id: string) {
-    const { data, error } = await supabase
+    // Use fresh client to avoid auth hanging
+    const client = createClient();
+
+    const { data, error } = await client
         .from('courses')
         .select(`
             *,
@@ -338,9 +341,19 @@ export async function getAdminStats() {
         .from('courses')
         .select('*', { count: 'exact', head: true });
 
+    // Total Enrollments (All time)
     const { count: totalEnrollments } = await supabase
         .from('enrollments')
         .select('*', { count: 'exact', head: true });
+
+    // New Enrollments (Last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { count: newEnrollments } = await supabase
+        .from('enrollments')
+        .select('*', { count: 'exact', head: true })
+        .gte('enrolled_at', sevenDaysAgo.toISOString());
 
     const { data: payments } = await supabase
         .from('payments')
@@ -350,10 +363,11 @@ export async function getAdminStats() {
     const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
     return {
-        students: totalStudents || 0,
-        courses: totalCourses || 0,
-        enrollments: totalEnrollments || 0,
-        revenue: totalRevenue,
+        totalStudents: totalStudents || 0,
+        totalCourses: totalCourses || 0,
+        totalEnrollments: totalEnrollments || 0,
+        newEnrollments: newEnrollments || 0,
+        totalRevenue: totalRevenue,
     };
 }
 
@@ -434,7 +448,8 @@ export async function getAdminCourses(options?: {
 }
 
 export async function deleteCourse(courseId: string) {
-    const { error } = await supabase
+    const client = createClient();
+    const { error } = await client
         .from('courses')
         .delete()
         .eq('id', courseId);
@@ -443,7 +458,8 @@ export async function deleteCourse(courseId: string) {
 }
 
 export async function updateCourseStatus(courseId: string, status: 'draft' | 'published' | 'archived') {
-    const { error } = await supabase
+    const client = createClient();
+    const { error } = await client
         .from('courses')
         .update({ status })
         .eq('id', courseId);
@@ -459,19 +475,27 @@ export async function createCourse(course: {
     price?: number;
     is_premium?: boolean;
     thumbnail_url?: string;
+    status?: 'draft' | 'published' | 'archived';
+    instructor_id?: string;
 }) {
-    const { data, error } = await supabase
+    console.log('API createCourse called with:', course);
+    const client = createClient();
+    const { data, error } = await client
         .from('courses')
         .insert(course)
         .select()
         .single();
 
-    if (error) throw error;
+    if (error) {
+        console.error('Supabase Insert Error:', error);
+        throw error;
+    }
     return data;
 }
 
 export async function updateCourse(id: string, updates: any) {
-    const { data, error } = await supabase
+    const client = createClient();
+    const { data, error } = await client
         .from('courses')
         .update(updates)
         .eq('id', id)
@@ -492,7 +516,8 @@ export async function createModule(module: {
     description?: string;
     order_index: number;
 }) {
-    const { data, error } = await supabase
+    const client = createClient();
+    const { data, error } = await client
         .from('modules')
         .insert(module)
         .select()
@@ -503,7 +528,8 @@ export async function createModule(module: {
 }
 
 export async function updateModule(id: string, updates: any) {
-    const { data, error } = await supabase
+    const client = createClient();
+    const { data, error } = await client
         .from('modules')
         .update(updates)
         .eq('id', id)
@@ -515,7 +541,8 @@ export async function updateModule(id: string, updates: any) {
 }
 
 export async function deleteModule(id: string) {
-    const { error } = await supabase
+    const client = createClient();
+    const { error } = await client
         .from('modules')
         .delete()
         .eq('id', id);
@@ -533,18 +560,55 @@ export async function createLesson(lesson: {
     order_index: number;
     is_free_preview?: boolean;
 }) {
-    const { data, error } = await supabase
-        .from('lessons')
-        .insert(lesson)
-        .select()
-        .single();
+    console.log('createLesson called with:', lesson);
 
-    if (error) throw error;
-    return data;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    console.log('Making direct fetch to:', `${url}/rest/v1/lessons`);
+    console.log('Using anon key (no session)');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+        const response = await fetch(`${url}/rest/v1/lessons`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': key!,
+                'Authorization': `Bearer ${key}`,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(lesson),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        console.log('Fetch response status:', response.status);
+
+        const data = await response.json();
+        console.log('Fetch response data:', data);
+
+        if (!response.ok) {
+            throw new Error(data.message || data.error || `HTTP ${response.status}`);
+        }
+
+        return Array.isArray(data) ? data[0] : data;
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out after 15 seconds');
+        }
+        console.error('createLesson error:', error);
+        throw error;
+    }
 }
 
 export async function updateLesson(id: string, updates: any) {
-    const { data, error } = await supabase
+    const client = createClient();
+    const { data, error } = await client
         .from('lessons')
         .update(updates)
         .eq('id', id)
@@ -556,7 +620,8 @@ export async function updateLesson(id: string, updates: any) {
 }
 
 export async function deleteLesson(id: string) {
-    const { error } = await supabase
+    const client = createClient();
+    const { error } = await client
         .from('lessons')
         .delete()
         .eq('id', id);

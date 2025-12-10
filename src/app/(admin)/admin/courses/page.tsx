@@ -4,13 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input, Select } from '@/components/ui/Input';
-import { Badge, LevelBadge } from '@/components/ui/Badge';
-import { TableRowSkeleton } from '@/components/ui/Skeleton';
-import { Modal, ConfirmDialog } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { getAdminCourses, deleteCourse } from '@/lib/api/courses';
 
@@ -26,26 +20,8 @@ interface Course {
     enrolled_count?: number;
 }
 
-// Mock courses data
-// Mock data removed
-
-const statusOptions = [
-    { value: '', label: 'All Status' },
-    { value: 'published', label: 'Published' },
-    { value: 'draft', label: 'Draft' },
-    { value: 'archived', label: 'Archived' },
-];
-
-const levelOptions = [
-    { value: '', label: 'All Levels' },
-    { value: 'JAMB', label: 'JAMB' },
-    { value: 'WAEC', label: 'WAEC' },
-    { value: 'SS1', label: 'SS1' },
-    { value: 'SS2', label: 'SS2' },
-];
-
 export default function AdminCoursesPage() {
-    const { profile, signOut } = useAuth();
+    const { signOut } = useAuth();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -109,136 +85,132 @@ export default function AdminCoursesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--background)]">
+        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
             <Sidebar role="admin" />
 
-            <div className="lg:ml-64">
-                <Header
-                    user={profile ? {
-                        name: profile.full_name || '',
-                        email: profile.email,
-                        avatar: profile.avatar_url || undefined,
-                        role: 'admin',
-                    } : null}
-                    onLogout={signOut}
-                />
-
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                        <div>
-                            <h1 className="text-2xl lg:text-3xl font-display font-bold text-[var(--foreground)]">
-                                Courses
-                            </h1>
-                            <p className="mt-1 text-[var(--muted-foreground)]">
-                                Manage your course catalog
-                            </p>
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto lg:ml-64">
+                <div className="p-8">
+                    {/* PageHeading */}
+                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
+                        <div className="flex min-w-72 flex-col gap-2">
+                            <h1 className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Courses</h1>
+                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Manage your course catalog</p>
                         </div>
                         <Link href="/admin/courses/new">
-                            <Button>
-                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add Course
-                            </Button>
+                            <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+                                <span className="material-symbols-outlined text-lg mr-2">add</span>
+                                <span className="truncate">Add Course</span>
+                            </button>
                         </Link>
-                    </div>
+                    </header>
 
                     {/* Filters */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <div className="flex-1">
-                            <Input
+                        <div className="relative flex-1">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark material-symbols-outlined">search</span>
+                            <input
                                 placeholder="Search courses..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                leftIcon={
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                }
+                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark h-12 pl-12 pr-4 text-base font-normal leading-normal"
                             />
                         </div>
-                        <Select
-                            options={statusOptions}
+                        <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-36"
-                        />
-                        <Select
-                            options={levelOptions}
+                            className="form-select flex w-full sm:w-48 min-w-0 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark h-12 px-4 text-base font-normal leading-normal"
+                        >
+                            <option value="">All Status</option>
+                            <option value="published">Published</option>
+                            <option value="draft">Draft</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                        <select
                             value={levelFilter}
                             onChange={(e) => setLevelFilter(e.target.value)}
-                            className="w-32"
-                        />
+                            className="form-select flex w-full sm:w-48 min-w-0 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark h-12 px-4 text-base font-normal leading-normal"
+                        >
+                            <option value="">All Levels</option>
+                            <option value="JAMB">JAMB</option>
+                            <option value="WAEC">WAEC</option>
+                            <option value="SS1">SS1</option>
+                            <option value="SS2">SS2</option>
+                            <option value="SS3">SS3</option>
+                        </select>
                     </div>
 
                     {/* Table */}
-                    <Card padding="none">
+                    <div className="bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-[var(--border)]">
-                                        <th className="text-left px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Course</th>
-                                        <th className="text-left px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Level</th>
-                                        <th className="text-left px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Status</th>
-                                        <th className="text-left px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Price</th>
-                                        <th className="text-left px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Students</th>
-                                        <th className="text-right px-4 py-3 font-medium text-[var(--muted-foreground)] bg-[var(--muted)]">Actions</th>
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark">
+                                    <tr>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Course</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Level</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Status</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Price</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Students</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-border-light dark:divide-border-dark">
                                     {isLoading ? (
-                                        [...Array(5)].map((_, i) => (
-                                            <TableRowSkeleton key={i} columns={6} />
-                                        ))
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-8 text-center text-text-secondary-light dark:text-text-secondary-dark">
+                                                <div className="flex justify-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     ) : courses.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-[var(--muted-foreground)]">
-                                                No courses found
+                                            <td colSpan={6} className="px-6 py-12 text-center text-text-secondary-light dark:text-text-secondary-dark">
+                                                <p className="text-lg font-medium mb-1">No courses found</p>
+                                                <p className="text-sm">Try adjusting your search or filters.</p>
                                             </td>
                                         </tr>
                                     ) : (
                                         courses.map((course) => (
-                                            <tr key={course.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]/50">
-                                                <td className="px-4 py-3">
+                                            <tr key={course.id} className="hover:bg-background-light dark:hover:bg-background-dark/50 transition-colors">
+                                                <td className="px-6 py-4">
                                                     <div>
-                                                        <p className="font-medium text-[var(--foreground)]">{course.title}</p>
-                                                        <p className="text-xs text-[var(--muted-foreground)]">/{course.slug}</p>
+                                                        <p className="font-semibold text-text-primary-light dark:text-text-primary-dark text-base">{course.title}</p>
+                                                        <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-mono mt-0.5">/{course.slug}</p>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <LevelBadge level={course.level as any} />
+                                                <td className="px-6 py-4">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                                        {course.level}
+                                                    </span>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <Badge
-                                                        variant={
-                                                            course.status === 'published' ? 'success' :
-                                                                course.status === 'draft' ? 'warning' : 'default'
-                                                        }
-                                                    >
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                                        ${course.status === 'published' ? 'bg-success/10 text-success' :
+                                                            course.status === 'draft' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                'bg-text-secondary-light/10 text-text-secondary-light'}`}>
                                                         {course.status}
-                                                    </Badge>
+                                                    </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-[var(--foreground)]">
+                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark font-medium">
                                                     {course.is_premium ? formatPrice(course.price || 0) : 'Free'}
                                                 </td>
-                                                <td className="px-4 py-3 text-[var(--foreground)]">
+                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">
                                                     {(course.enrolled_count || 0).toLocaleString()}
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <Link href={`/admin/courses/${course.id}/edit`}>
-                                                            <Button variant="ghost" size="sm">
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                </svg>
-                                                            </Button>
+                                                        <Link href={`/admin/courses/${course.id}`}>
+                                                            <button className="p-2 rounded-lg hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors">
+                                                                <span className="material-symbols-outlined text-xl">edit</span>
+                                                            </button>
                                                         </Link>
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(course)}>
-                                                            <svg className="w-4 h-4 text-error-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </Button>
+                                                        <button
+                                                            onClick={() => handleDelete(course)}
+                                                            className="p-2 rounded-lg hover:bg-danger/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-danger transition-colors"
+                                                        >
+                                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -247,11 +219,9 @@ export default function AdminCoursesPage() {
                                 </tbody>
                             </table>
                         </div>
-                    </Card>
-                </main>
-            </div>
-
-            <MobileNav role="admin" />
+                    </div>
+                </div>
+            </main>
 
             {/* Delete Confirmation */}
             <ConfirmDialog
@@ -263,6 +233,7 @@ export default function AdminCoursesPage() {
                 confirmText="Delete"
                 variant="danger"
             />
+            <MobileNav role="admin" />
         </div>
     );
 }
