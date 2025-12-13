@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { PageLoader } from '@/components/ui/PageLoader';
 import { getAdminStats, getRecentEnrollments } from '@/lib/api/courses';
 
 interface RecentEnrollment {
@@ -14,12 +15,19 @@ interface RecentEnrollment {
 }
 
 export default function AdminDashboardPage() {
-    const { profile, signOut } = useAuth();
+    const { profile, signOut, user, isLoading: authLoading } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [enrollments, setEnrollments] = useState<RecentEnrollment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // Wait for auth to be ready
+        if (authLoading) return;
+
+        // If not authenticated, the sidebar/layout will handle redirect, 
+        // but we should stop here
+        if (!user) return;
+
         async function loadAdminData() {
             try {
                 const [statsData, enrollmentsData] = await Promise.all([
@@ -35,7 +43,7 @@ export default function AdminDashboardPage() {
             }
         }
         loadAdminData();
-    }, []);
+    }, [user, authLoading]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
@@ -57,6 +65,34 @@ export default function AdminDashboardPage() {
         if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
         return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
     };
+
+    if (authLoading || isLoading) {
+        return <PageLoader role="admin" />;
+    }
+
+    // Client-side admin check (defense in depth - middleware should catch this first)
+    if (!authLoading && profile && profile.role !== 'admin') {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center p-8 max-w-md">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-3xl text-red-600 dark:text-red-400">block</span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        You don&apos;t have permission to access the admin panel.
+                    </p>
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-lg">arrow_back</span>
+                        Go to Dashboard
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">

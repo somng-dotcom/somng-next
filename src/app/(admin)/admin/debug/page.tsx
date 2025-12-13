@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { PageLoader } from '@/components/ui/PageLoader';
 import { Button } from '@/components/ui/Button';
+import { AdminGuard } from '@/components/auth/AdminGuard';
 
 export default function DebugPage() {
-    const { user, isLoading: authLoading } = useAuth();
+    const { user, profile, isLoading: authLoading } = useAuth();
     const [logs, setLogs] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +22,7 @@ export default function DebugPage() {
 
         try {
             const supabase = createClient();
-            
+
             // Check Config
             const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
             const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -168,29 +171,41 @@ export default function DebugPage() {
         }
     };
 
+    if (authLoading) {
+        return <PageLoader role="admin" />;
+    }
+
     return (
-        <div className="p-8 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">System Diagnostics</h1>
-            <div className="mb-4 text-sm text-gray-600">
-                Use this page to debug database connection and permission issues.
-            </div>
+        <AdminGuard profile={profile} isLoading={authLoading}>
+            <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+                <Sidebar role="admin" />
+                <main className="flex-1 overflow-y-auto lg:ml-64 p-8">
+                    <div className="max-w-2xl mx-auto">
+                        <h1 className="text-2xl font-bold mb-4 text-text-primary-light dark:text-text-primary-dark">System Diagnostics</h1>
+                        <div className="mb-4 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            Use this page to debug database connection and permission issues.
+                        </div>
 
-            <div className="mb-4 p-2 bg-yellow-50 text-xs font-mono border border-yellow-200 rounded">
-                DEBUG INFO:
-                User: {user ? user.id : 'NULL'} |
-                Auth Loading: {authLoading ? 'YES' : 'NO'} |
-                Busy: {isLoading ? 'YES' : 'NO'}
-            </div>
+                        <div className="mb-4 p-2 bg-yellow-50 dark:bg-yellow-900/20 text-xs font-mono border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-200">
+                            DEBUG INFO:
+                            User: {user ? user.id : 'NULL'} |
+                            Auth Loading: {authLoading ? 'YES' : 'NO'} |
+                            Busy: {isLoading ? 'YES' : 'NO'}
+                        </div>
 
-            <div className="flex gap-2">
-                <Button onClick={runDiagnostics} disabled={isLoading}>
-                    {isLoading ? 'Running...' : 'Run Diagnostics (Force)'}
-                </Button>
-            </div>
+                        <div className="flex gap-2">
+                            <Button onClick={runDiagnostics} disabled={isLoading}>
+                                {isLoading ? 'Running...' : 'Run Diagnostics (Force)'}
+                            </Button>
+                        </div>
 
-            <div className="mt-6 p-4 bg-black text-green-400 font-mono text-sm rounded-lg min-h-[300px] whitespace-pre-wrap">
-                {logs.length === 0 ? 'Ready to run...' : logs.join('\n')}
+                        <div className="mt-6 p-4 bg-black text-green-400 font-mono text-sm rounded-lg min-h-[300px] whitespace-pre-wrap">
+                            {logs.length === 0 ? 'Ready to run...' : logs.join('\n')}
+                        </div>
+                    </div>
+                </main>
+                <MobileNav role="admin" />
             </div>
-        </div>
+        </AdminGuard>
     );
 }

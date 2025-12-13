@@ -57,8 +57,22 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
-    // Check admin access (would need to fetch profile role from DB in production)
-    // For now, we allow access and let the page handle role-based rendering
+    // Check admin access - verify user has admin role from database
+    if (isAdminRoute && user) {
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        // If profile fetch failed or user is not admin, redirect to dashboard
+        if (error || profile?.role !== 'admin') {
+            console.warn(`[Middleware] Non-admin user ${user.id} attempted to access admin route: ${pathname}`)
+            const redirectUrl = new URL('/dashboard', request.url)
+            redirectUrl.searchParams.set('unauthorized', 'admin')
+            return NextResponse.redirect(redirectUrl)
+        }
+    }
 
     return supabaseResponse
 }

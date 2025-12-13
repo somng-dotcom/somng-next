@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     description: "Learn mathematics with structured courses for JAMB, WAEC, and all secondary school levels.",
     type: "website",
   },
+  icons: {
+    icon: '/somng%20logo.jpeg',
+  },
 };
 
 export default function RootLayout({

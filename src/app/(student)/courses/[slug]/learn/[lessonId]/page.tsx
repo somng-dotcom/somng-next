@@ -8,14 +8,16 @@ import { Button } from '@/components/ui/Button';
 import { Progress, CourseProgress } from '@/components/ui/Progress';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { getCourseBySlug, getLessonProgress, markLessonComplete, getCourseProgress } from '@/lib/api/courses';
-import { CourseWithDetails, Lesson, ModuleWithLessons } from '@/types/database';
+import { getCourseBySlug, getLessonProgress, markLessonComplete } from '@/lib/api/courses';
+import { CourseWithDetails, Lesson } from '@/types/database';
 import QuizPlayer from './QuizPlayer';
+import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
 
 export default function LessonViewerPage() {
     const { slug, lessonId } = useParams();
     const router = useRouter();
-    const { user, profile } = useAuth();
+    const { user, profile, isLoading: authLoading, signOut } = useAuth();
     const { addToast } = useToast();
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -181,19 +183,10 @@ export default function LessonViewerPage() {
     const isLessonCompleted = (id: string) => completedLessonIds.has(id);
     const isCurrentCompleted = currentLesson ? isLessonCompleted(currentLesson.id) : false;
 
-
-    if (isLoading || !course || !currentLesson) {
-        return (
-            <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-[var(--muted-foreground)]">Loading lesson...</p>
-                </div>
-            </div>
-        );
-    }
-
     // Helper to render content based on type
     const renderContent = () => {
+        if (!currentLesson) return null;
+
         switch (currentLesson.content_type) {
             case 'video':
                 // Check if it's an embeddable URL or needs transformation
@@ -201,8 +194,8 @@ export default function LessonViewerPage() {
 
                 if (!embedUrl) {
                     return (
-                        <div className="absolute inset-0 flex items-center justify-center bg-dark-800">
-                            <p className="text-dark-400">No video URL provided for this lesson.</p>
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <p className="text-gray-500 dark:text-gray-400">No video URL provided for this lesson.</p>
                         </div>
                     );
                 }
@@ -210,36 +203,35 @@ export default function LessonViewerPage() {
                 if (embedUrl.includes('youtube.com/watch?v=')) {
                     // Extract video ID properly to handle query params like &t=
                     const videoId = embedUrl.split('v=')[1]?.split('&')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
                 } else if (embedUrl.includes('youtu.be/')) {
                     // Handle https://youtu.be/VIDEO_ID?si=...
                     const videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
                 }
 
                 return (
                     <iframe
                         src={embedUrl}
                         title={currentLesson.title}
-                        className="absolute inset-0 w-full h-full"
+                        className="absolute inset-0 w-full h-full rounded-lg shadow-sm bg-black"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                     />
                 );
             case 'pdf':
                 return (
-                    <div className="absolute inset-0 flex items-center justify-center bg-dark-800">
-                        <div className="text-center">
-                            <svg className="w-16 h-16 mx-auto mb-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-lg font-medium mb-2">PDF Document</p>
-                            {currentLesson.content_url && (
-                                <Button variant="primary" onClick={() => window.open(currentLesson.content_url || '', '_blank')}>
-                                    Open PDF
-                                </Button>
-                            )}
-                        </div>
+                    <div className="flex flex-col items-center justify-center p-12 bg-gray-100 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                        <span className="material-symbols-outlined text-6xl text-primary mb-4">description</span>
+                        <p className="text-lg font-medium mb-2 text-text-primary">PDF Document</p>
+                        <p className="text-text-secondary mb-6 text-center max-w-md">
+                            This lesson contains a PDF document. You can view it by clicking the button below.
+                        </p>
+                        {currentLesson.content_url && (
+                            <Button variant="primary" onClick={() => window.open(currentLesson.content_url || '', '_blank')}>
+                                Open PDF
+                            </Button>
+                        )}
                     </div>
                 );
             case 'quiz':
@@ -251,183 +243,185 @@ export default function LessonViewerPage() {
                 );
             default:
                 return (
-                    <div className="absolute inset-0 flex items-center justify-center bg-dark-800">
-                        <p className="text-dark-400">Content type not supported yet: {currentLesson.content_type}</p>
+                    <div className="flex items-center justify-center p-12 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <p className="text-gray-500">Content type not supported yet: {currentLesson.content_type}</p>
                     </div>
                 );
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gray-900 text-white">
-            {/* Top Bar */}
-            <header className="sticky top-0 z-50 bg-gray-800 border-b border-gray-700">
-                <div className="flex items-center justify-between h-14 px-4">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href={`/courses/${slug}`}
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                        </Link>
-                        <div className="hidden sm:block">
-                            <p className="text-sm text-gray-400">Course</p>
-                            <p className="font-medium line-clamp-1">{course.title}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-3">
-                            <span className="text-sm text-gray-400">
-                                {courseProgress.completed}/{courseProgress.total} lessons
-                            </span>
-                            <Progress
-                                value={courseProgress.percentage}
-                                size="sm"
-                                className="w-32"
-                            />
-                        </div>
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                    </div>
+    if (isLoading || !course || !currentLesson) {
+        return (
+            <div className="min-h-screen bg-background text-text-primary flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-text-secondary">Loading lesson...</p>
                 </div>
-            </header>
+            </div>
+        );
+    }
 
-            <div className="flex h-[calc(100vh-3.5rem)]">
-                {/* Main Content */}
-                <main className={`flex-1 overflow-hidden transition-all flex flex-col ${sidebarOpen ? 'lg:mr-80' : ''}`}>
-                    {/* Video Player Area */}
-                    <div className="relative bg-black aspect-video max-h-[calc(100vh-16rem)] w-full">
-                        {renderContent()}
-                    </div>
+    const userName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+    const sidebarRole = profile?.role === 'admin' ? 'admin' : 'student';
 
-                    {/* Lesson Info */}
-                    <div className="p-4 lg:p-6 overflow-y-auto flex-1">
-                        <div className="max-w-4xl mx-auto">
-                            <div className="flex items-start justify-between gap-4 mb-4">
-                                <div>
-                                    <h1 className="text-xl lg:text-2xl font-bold">{currentLesson.title}</h1>
-                                    <p className="text-gray-400 mt-1">{currentLesson.duration_minutes || 0} minutes</p>
-                                </div>
-                                {isCurrentCompleted ? (
-                                    <Badge variant="success" size="md">
-                                        <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Completed
-                                    </Badge>
-                                ) : (
-                                    <Button onClick={handleMarkComplete} size="sm">
-                                        Mark as Complete
-                                    </Button>
-                                )}
-                            </div>
+    return (
+        <div className="min-h-screen bg-background font-display text-text-primary">
+            <Sidebar role={sidebarRole} />
 
-                            {/* Navigation */}
-                            <div className="flex items-center justify-between pt-4 border-t border-gray-700 mt-6">
-                                <Button
-                                    variant="ghost"
-                                    onClick={goToPrevLesson}
-                                    disabled={!prevLesson}
-                                    className="text-white hover:text-white hover:bg-gray-700"
+            <div className="lg:ml-64 flex flex-col min-h-screen">
+                <Header
+                    user={profile ? {
+                        name: profile.full_name || '',
+                        email: profile.email,
+                        avatar: profile.avatar_url || undefined,
+                        role: sidebarRole,
+                    } : null}
+                    onLogout={signOut}
+                />
+
+                <main className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 flex flex-col lg:flex-row h-full">
+                        {/* Left: Main Content (Video/Lesson) */}
+                        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+                            {/* Breadcrumb / Back Link */}
+                            <div className="mb-4">
+                                <Link
+                                    href={`/courses/${slug}`}
+                                    className="inline-flex items-center text-sm text-text-secondary hover:text-primary transition-colors"
                                 >
-                                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={goToNextLesson}
-                                    disabled={!nextLesson}
-                                >
-                                    Next Lesson
-                                    <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </Button>
+                                    <span className="material-symbols-outlined text-lg mr-1">arrow_back</span>
+                                    Back to Course Review
+                                </Link>
                             </div>
-                        </div>
-                    </div>
-                </main>
 
-                {/* Sidebar */}
-                {sidebarOpen && (
-                    <aside className="fixed right-0 top-14 bottom-0 w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto custom-scrollbar hidden lg:block z-40">
-                        <div className="p-4">
-                            <h2 className="font-semibold mb-4 text-white">Course Content</h2>
-
-                            <div className="mb-6 bg-gray-700/50 p-3 rounded-lg">
-                                <div className="flex justify-between text-sm text-gray-300 mb-2">
-                                    <span>Course Progress</span>
-                                    <span>{courseProgress.percentage}%</span>
+                            {/* Player / Content Area */}
+                            <div className="w-full max-w-5xl mx-auto">
+                                <div className={`relative w-full ${currentLesson.content_type === 'video' ? 'aspect-video' : 'min-h-[400px]'} mb-6`}>
+                                    {renderContent()}
                                 </div>
-                                <Progress
-                                    value={courseProgress.percentage}
-                                    size="sm"
-                                    className="w-full"
-                                />
-                            </div>
 
-                            {course.modules?.map((module, mIndex) => (
-                                <div key={module.id} className="mb-4">
-                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-                                        Module {mIndex + 1}: {module.title}
-                                    </h3>
-                                    <div className="space-y-1">
-                                        {module.lessons?.map((lesson, lIndex) => (
-                                            <Link
-                                                key={lesson.id}
-                                                href={`/courses/${slug}/learn/${lesson.id}`}
-                                                className={`
-                                                    flex items-center gap-3 p-3 rounded-lg transition-colors border border-transparent
-                                                    ${lesson.id === lessonId
-                                                        ? 'bg-primary-600 text-white border-primary-500 shadow-sm'
-                                                        : 'hover:bg-gray-700 text-gray-300'
-                                                    }
-                                                `}
-                                            >
-                                                {isLessonCompleted(lesson.id) ? (
-                                                    <div className="bg-success-500/20 rounded-full p-1">
-                                                        <svg className="w-4 h-4 text-success-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    </div>
-                                                ) : (
-                                                    <div className={`
-                                                        rounded-full p-1 border-2 w-6 h-6 flex items-center justify-center text-xs
-                                                        ${lesson.id === lessonId ? 'border-white text-white' : 'border-gray-500 text-gray-500'}
-                                                    `}>
-                                                        {lIndex + 1}
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={`text-sm line-clamp-2 ${lesson.id === lessonId ? 'font-medium' : ''}`}>
-                                                        {lesson.title}
-                                                    </p>
-                                                    <p className="text-xs opacity-70 mt-0.5 flex items-center gap-1">
-                                                        {lesson.content_type === 'video' && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                                                        {lesson.content_type === 'quiz' && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
-                                                        {lesson.duration_minutes} min
-                                                    </p>
-                                                </div>
-                                            </Link>
-                                        ))}
+                                {/* Lesson Info & Controls */}
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-border pb-6 mb-6">
+                                    <div className="flex-1">
+                                        <h1 className="text-2xl font-bold text-text-primary mb-2">{currentLesson.title}</h1>
+                                        <div className="flex items-center gap-4 text-sm text-text-secondary">
+                                            <span className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-lg">schedule</span>
+                                                {currentLesson.duration_minutes || 0} min
+                                            </span>
+                                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                                            <span>Module: {course.modules?.find(m => m.lessons?.some(l => l.id === currentLesson.id))?.title}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {isCurrentCompleted ? (
+                                            <Badge variant="success" size="md" className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-base">check_circle</span>
+                                                Completed
+                                            </Badge>
+                                        ) : (
+                                            <Button onClick={handleMarkComplete} size="md">
+                                                Mark as Complete
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
-                            ))}
+
+                                {/* Navigation Buttons */}
+                                <div className="flex items-center justify-between">
+                                    <Button
+                                        variant="outline"
+                                        onClick={goToPrevLesson}
+                                        disabled={!prevLesson}
+                                        className="gap-2"
+                                    >
+                                        <span className="material-symbols-outlined">arrow_back</span>
+                                        Previous Lesson
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        onClick={goToNextLesson}
+                                        disabled={!nextLesson}
+                                        className="gap-2"
+                                    >
+                                        Next Lesson
+                                        <span className="material-symbols-outlined">arrow_forward</span>
+                                    </Button>
+                                </div>
+
+                                {/* Description / Content Text (if any) */}
+                                {currentLesson.content_text && (
+                                    <div className="mt-8 prose dark:prose-invert max-w-none">
+                                        <h3>Lesson Notes</h3>
+                                        <div dangerouslySetInnerHTML={{ __html: currentLesson.content_text }} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </aside>
-                )}
+
+                        {/* Right: Course Curriculum Sidebar (Desktop) */}
+                        <aside className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-border bg-surface h-[50vh] lg:h-auto flex flex-col">
+                            <div className="p-4 border-b border-border bg-surface-highlight">
+                                <h2 className="font-bold text-text-primary mb-1">Course Content</h2>
+                                <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
+                                    <span>{courseProgress.completed} / {courseProgress.total} Lessons Completed</span>
+                                    <span className="font-semibold">{courseProgress.percentage}%</span>
+                                </div>
+                                <Progress value={courseProgress.percentage} size="sm" className="w-full h-2" />
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-4">
+                                {course.modules?.map((module, mIndex) => (
+                                    <div key={module.id} className="space-y-1">
+                                        <h3 className="px-2 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                                            Module {mIndex + 1}: {module.title}
+                                        </h3>
+                                        <div className="space-y-0.5">
+                                            {module.lessons?.map((lesson, lIndex) => (
+                                                <Link
+                                                    key={lesson.id}
+                                                    href={`/courses/${slug}/learn/${lesson.id}`}
+                                                    className={`
+                                                        flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border border-transparent
+                                                        ${lesson.id === lessonId
+                                                            ? 'bg-primary/10 text-primary border-primary/20 font-medium'
+                                                            : 'hover:bg-background-hover text-text-secondary hover:text-text-primary'
+                                                        }
+                                                    `}
+                                                >
+                                                    <div className="flex-shrink-0">
+                                                        {isLessonCompleted(lesson.id) ? (
+                                                            <span className="material-symbols-outlined text-success text-xl">check_circle</span>
+                                                        ) : (
+                                                            <div className={`
+                                                                w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold
+                                                                ${lesson.id === lessonId ? 'border-primary text-primary' : 'border-gray-400 text-gray-500'}
+                                                            `}>
+                                                                {lIndex + 1}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm truncate leading-snug">{lesson.title}</p>
+                                                        <div className="flex items-center gap-1 mt-0.5 text-xs opacity-70">
+                                                            <span className="material-symbols-outlined text-[14px]">
+                                                                {lesson.content_type === 'video' ? 'play_circle' :
+                                                                    lesson.content_type === 'quiz' ? 'quiz' : 'description'}
+                                                            </span>
+                                                            {lesson.duration_minutes} min
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </aside>
+                    </div>
+                </main>
+                <MobileNav role={sidebarRole} />
             </div>
         </div>
     );
 }
+

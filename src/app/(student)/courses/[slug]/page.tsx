@@ -96,29 +96,95 @@ export default function CourseDetailPage() {
 
         if (!course) return;
 
-        // For premium courses, redirect to payment
-        if (course.is_premium) {
-            // TODO: Implement payment flow
-            addToast({ type: 'info', title: 'Payment integration coming soon' });
+        // For free courses, enroll directly
+        if (!course.is_premium) {
+            setIsEnrolling(true);
+            try {
+                await enrollUser(user.id, course.id);
+                setIsEnrolled(true);
+                addToast({ type: 'success', title: 'Successfully enrolled!' });
+            } catch (error: any) {
+                console.error('Error enrolling:', error);
+                addToast({ type: 'error', title: error.message || 'Failed to enroll' });
+            } finally {
+                setIsEnrolling(false);
+            }
+            return;
+        }
+
+        // For premium courses, use Flutterwave
+        const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY;
+
+        if (!publicKey) {
+            addToast({ type: 'error', title: 'Payment not configured. Please contact support.' });
             return;
         }
 
         setIsEnrolling(true);
-        try {
-            await enrollUser(user.id, course.id);
-            setIsEnrolled(true);
-            addToast({ type: 'success', title: 'Successfully enrolled!' });
-        } catch (error: any) {
-            console.error('Error enrolling:', {
-                message: error.message || 'Unknown error',
-                details: error.details,
-                hint: error.hint,
-                code: error.code
+
+        // Load Flutterwave inline script if not already loaded
+        if (!(window as any).FlutterwaveCheckout) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.flutterwave.com/v3.js';
+            script.async = true;
+            document.body.appendChild(script);
+
+            await new Promise((resolve) => {
+                script.onload = resolve;
             });
-            addToast({ type: 'error', title: error.message || 'Failed to enroll' });
-        } finally {
-            setIsEnrolling(false);
         }
+
+        // Initialize Flutterwave payment
+        (window as any).FlutterwaveCheckout({
+            public_key: publicKey,
+            tx_ref: `course_${course.id}_${user.id}_${Date.now()}`,
+            amount: course.price,
+            currency: 'NGN',
+            payment_options: 'card,banktransfer,ussd',
+            customer: {
+                email: profile?.email || user.email || '',
+                name: profile?.full_name || 'Student',
+            },
+            customizations: {
+                title: 'School of Mathematics Nigeria',
+                description: `Enrollment: ${course.title}`,
+                logo: `${window.location.origin}/somng%20logo.jpeg`,
+            },
+            callback: async (response: any) => {
+                // Verify payment on backend
+                try {
+                    const verifyResponse = await fetch('/api/payments/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            transaction_id: response.transaction_id,
+                            course_id: course.id,
+                        }),
+                    });
+
+                    const result = await verifyResponse.json();
+
+                    if (result.success) {
+                        setIsEnrolled(true);
+                        addToast({ type: 'success', title: 'Payment successful! You are now enrolled.' });
+                        // Redirect to first lesson
+                        const firstLessonId = course.modules?.[0]?.lessons?.[0]?.id;
+                        if (firstLessonId) {
+                            router.push(`/courses/${course.slug}/learn/${firstLessonId}`);
+                        }
+                    } else {
+                        addToast({ type: 'error', title: result.error || 'Payment verification failed' });
+                    }
+                } catch (error: any) {
+                    console.error('Verification error:', error);
+                    addToast({ type: 'error', title: 'Payment verification failed. Please contact support.' });
+                }
+                setIsEnrolling(false);
+            },
+            onclose: () => {
+                setIsEnrolling(false);
+            },
+        });
     };
 
     const toggleModule = (moduleId: string) => {

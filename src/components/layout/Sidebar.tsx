@@ -20,10 +20,10 @@ interface NavItem {
 // Student navigation items
 const studentNavItems: NavItem[] = [
     { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-    { label: 'Free Courses', href: '/courses?type=free', icon: 'book' },
-    { label: 'Premium Courses', href: '/courses?type=premium', icon: 'star' },
+    { label: 'Courses', href: '/courses', icon: 'book' },
     { label: 'My Learning', href: '/my-courses', icon: 'school' },
     { label: 'Profile', href: '/profile', icon: 'person' },
+    { label: 'Logout', href: '/logout', icon: 'logout' },
 ];
 
 // Admin navigation items
@@ -33,13 +33,15 @@ const adminNavItems: NavItem[] = [
     { label: 'Students', href: '/admin/students', icon: 'group' },
     { label: 'Payments', href: '/admin/payments', icon: 'credit_card' },
     { label: 'Analytics', href: '/admin/analytics', icon: 'bar_chart' },
+    { label: 'Notifications', href: '/admin/notifications', icon: 'notifications' },
     { label: 'Settings', href: '/admin/settings', icon: 'settings' },
+    { label: 'Logout', href: '/logout', icon: 'logout' },
 ];
 
 export function Sidebar({ role = 'student' }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const { profile } = useAuth();
+    const { profile, signOut } = useAuth();
     const navItems = role === 'admin' ? adminNavItems : studentNavItems;
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -110,27 +112,46 @@ export function Sidebar({ role = 'student' }: SidebarProps) {
 
             {/* Navigation */}
             <nav className="flex flex-col gap-1 p-4 flex-grow">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`
-                            flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
-                            ${isActive(item.href)
-                                ? 'bg-primary-500/10 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                            }
-                        `}
-                    >
-                        <span
-                            className="material-symbols-outlined"
-                            style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
+                {navItems.map((item) => {
+                    if (item.href === '/logout') {
+                        return (
+                            <button
+                                key={item.href}
+                                onClick={() => signOut()}
+                                className={`
+                                    w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
+                                    text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800
+                                `}
+                            >
+                                <span className="material-symbols-outlined">
+                                    {item.icon}
+                                </span>
+                                <p className="text-sm font-medium leading-normal">{item.label}</p>
+                            </button>
+                        );
+                    }
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg transition-colors
+                                ${isActive(item.href)
+                                    ? 'bg-primary-500/10 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }
+                            `}
                         >
-                            {item.icon}
-                        </span>
-                        <p className="text-sm font-medium leading-normal">{item.label}</p>
-                    </Link>
-                ))}
+                            <span
+                                className="material-symbols-outlined"
+                                style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
+                            >
+                                {item.icon}
+                            </span>
+                            <p className="text-sm font-medium leading-normal">{item.label}</p>
+                        </Link>
+                    );
+                })}
             </nav>
 
             {/* Bottom section */}
@@ -151,15 +172,7 @@ export function Sidebar({ role = 'student' }: SidebarProps) {
                     <span className="material-symbols-outlined">settings</span>
                     <p className="text-sm font-medium leading-normal">Settings</p>
                 </Link>
-                <button
-                    onClick={() => {
-                        // Logout handled by auth hook
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                    <span className="material-symbols-outlined">logout</span>
-                    <p className="text-sm font-medium leading-normal">Logout</p>
-                </button>
+
             </div>
         </aside>
     );
@@ -168,6 +181,7 @@ export function Sidebar({ role = 'student' }: SidebarProps) {
 // Mobile Bottom Navigation
 export function MobileNav({ role = 'student' }: SidebarProps) {
     const pathname = usePathname();
+    const { signOut } = useAuth();
 
     const mobileNavItems = role === 'admin'
         ? adminNavItems.slice(0, 5)
@@ -183,27 +197,44 @@ export function MobileNav({ role = 'student' }: SidebarProps) {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden">
             <div className="flex items-center justify-around py-2">
-                {mobileNavItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`
-                            flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors
-                            ${isActive(item.href)
-                                ? 'text-primary-600 dark:text-primary-400'
-                                : 'text-gray-500 dark:text-gray-400'
-                            }
-                        `}
-                    >
-                        <span
-                            className="material-symbols-outlined text-xl"
-                            style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
+                {mobileNavItems.map((item) => {
+                    if (item.href === '/logout') {
+                        return (
+                            <button
+                                key={item.href}
+                                onClick={() => signOut()}
+                                className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors text-gray-500 dark:text-gray-400"
+                            >
+                                <span className="material-symbols-outlined text-xl">
+                                    {item.icon}
+                                </span>
+                                <span className="text-xs">{item.label}</span>
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`
+                                flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors
+                                ${isActive(item.href)
+                                    ? 'text-primary-600 dark:text-primary-400'
+                                    : 'text-gray-500 dark:text-gray-400'
+                                }
+                            `}
                         >
-                            {item.icon}
-                        </span>
-                        <span className="text-xs">{item.label}</span>
-                    </Link>
-                ))}
+                            <span
+                                className="material-symbols-outlined text-xl"
+                                style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
+                            >
+                                {item.icon}
+                            </span>
+                            <span className="text-xs">{item.label}</span>
+                        </Link>
+                    );
+                })}
             </div>
         </nav>
     );

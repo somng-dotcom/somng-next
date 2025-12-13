@@ -19,71 +19,42 @@ export async function getCourses(options?: {
     search?: string;
     limit?: number;
 }) {
-    try {
-        let query = supabase
-            .from('courses')
-            .select(`
-                *,
-                modules:modules(count),
-                enrollments:enrollments(count)
-            `)
-            .eq('status', options?.status || 'published')
-            .order('created_at', { ascending: false });
+    // Use simpler query without count aggregations for better performance
+    let query = supabase
+        .from('courses')
+        .select('id, title, slug, description, thumbnail_url, level, is_premium, price, duration_hours, status, created_at')
+        .eq('status', options?.status || 'published')
+        .order('created_at', { ascending: false });
 
-        if (options?.level) {
-            query = query.eq('level', options.level);
-        }
-
-        if (options?.isPremium !== undefined) {
-            query = query.eq('is_premium', options.isPremium);
-        }
-
-        if (options?.search) {
-            query = query.or(`title.ilike.%${options.search}%,description.ilike.%${options.search}%`);
-        }
-
-        if (options?.limit) {
-            query = query.limit(options.limit);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-            console.error('Supabase error fetching courses:', error.message, error.code);
-            throw new Error(`Database error: ${error.message}`);
-        }
-
-        // Transform the count aggregations
-        return data?.map(course => ({
-            ...course,
-            lessons_count: course.modules?.[0]?.count || 0,
-            enrolled_count: course.enrollments?.[0]?.count || 0,
-        })) || [];
-    } catch (err: any) {
-        console.error('getCourses failed with relations, trying simple fetch:', err);
-
-        // Fallback: Try fetching just courses without relations
-        try {
-            const { data, error } = await supabase
-                .from('courses')
-                .select('*')
-                .eq('status', options?.status || 'published')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            console.log('Fallback fetch successful, found:', data?.length);
-
-            return data?.map(course => ({
-                ...course,
-                lessons_count: 0,
-                enrolled_count: 0,
-            })) || [];
-        } catch (fallbackErr) {
-            console.error('Fallback getCourses failed:', fallbackErr);
-            throw fallbackErr;
-        }
+    if (options?.level) {
+        query = query.eq('level', options.level);
     }
+
+    if (options?.isPremium !== undefined) {
+        query = query.eq('is_premium', options.isPremium);
+    }
+
+    if (options?.search) {
+        query = query.or(`title.ilike.%${options.search}%,description.ilike.%${options.search}%`);
+    }
+
+    if (options?.limit) {
+        query = query.limit(options.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Supabase error fetching courses:', error.message, error.code);
+        throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Return with placeholder counts (can be fetched separately if needed)
+    return data?.map(course => ({
+        ...course,
+        lessons_count: 0, // Removed for performance - fetch separately if needed
+        enrolled_count: 0,
+    })) || [];
 }
 
 export async function getCourseBySlug(slug: string) {

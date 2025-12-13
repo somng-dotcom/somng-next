@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/Toast';
+import { PageLoader } from '@/components/ui/PageLoader';
+import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { createCourse } from '@/lib/api/courses';
 import { Button } from '@/components/ui/Button';
+import { AdminGuard } from '@/components/auth/AdminGuard';
 
 export default function NewCoursePage() {
-    const { user, signOut } = useAuth();
+    const { user, profile, signOut, isLoading } = useAuth();
     const router = useRouter();
     const { addToast } = useToast();
 
@@ -24,6 +27,10 @@ export default function NewCoursePage() {
         status: 'draft' as 'draft' | 'published' | 'archived',
         thumbnail_url: ''
     });
+
+    if (isLoading) {
+        return <PageLoader role="admin" />;
+    }
 
     const handleCreate = async (statusOverride?: 'published' | 'draft') => {
         if (!user) {
@@ -67,190 +74,193 @@ export default function NewCoursePage() {
     };
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
-            {/* SideNavBar - Inline implementation matching HTML structure */}
-            <aside className="flex w-64 flex-col border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hidden lg:flex">
-                <div className="flex h-full flex-col justify-between p-4">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3 px-2">
-                            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                SM
+        <AdminGuard profile={profile} isLoading={isLoading}>
+            <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+                {/* SideNavBar - Inline implementation matching HTML structure */}
+                <aside className="flex w-64 flex-col border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hidden lg:flex">
+                    <div className="flex h-full flex-col justify-between p-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-3 px-2">
+                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                    SM
+                                </div>
+                                <div className="flex flex-col">
+                                    <h1 className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Admin</h1>
+                                    <p className="text-sm font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">School of Mathematics</p>
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                                <h1 className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Admin</h1>
-                                <p className="text-sm font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">School of Mathematics</p>
-                            </div>
+                            <nav className="mt-4 flex flex-col gap-2">
+                                <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
+                                    <span className="material-symbols-outlined">dashboard</span>
+                                    <p className="text-sm font-medium leading-normal">Dashboard</p>
+                                </Link>
+                                <Link href="/admin/courses" className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors">
+                                    <span className="material-symbols-outlined fill">school</span>
+                                    <p className="text-sm font-medium leading-normal">Courses</p>
+                                </Link>
+                                <Link href="/admin/students" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
+                                    <span className="material-symbols-outlined">group</span>
+                                    <p className="text-sm font-medium leading-normal">Students</p>
+                                </Link>
+                                <Link href="/admin/analytics" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
+                                    <span className="material-symbols-outlined">analytics</span>
+                                    <p className="text-sm font-medium leading-normal">Analytics</p>
+                                </Link>
+                                <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
+                                    <span className="material-symbols-outlined">settings</span>
+                                    <p className="text-sm font-medium leading-normal">Settings</p>
+                                </Link>
+                            </nav>
                         </div>
-                        <nav className="mt-4 flex flex-col gap-2">
-                            <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                <span className="material-symbols-outlined">dashboard</span>
-                                <p className="text-sm font-medium leading-normal">Dashboard</p>
-                            </Link>
-                            <Link href="/admin/courses" className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors">
-                                <span className="material-symbols-outlined fill">school</span>
-                                <p className="text-sm font-medium leading-normal">Courses</p>
-                            </Link>
-                            <Link href="/admin/students" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                <span className="material-symbols-outlined">group</span>
-                                <p className="text-sm font-medium leading-normal">Students</p>
-                            </Link>
-                            <Link href="/admin/analytics" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                <span className="material-symbols-outlined">analytics</span>
-                                <p className="text-sm font-medium leading-normal">Analytics</p>
-                            </Link>
-                            <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                <span className="material-symbols-outlined">settings</span>
-                                <p className="text-sm font-medium leading-normal">Settings</p>
-                            </Link>
-                        </nav>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <button className="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
-                            <span className="truncate">Create New Course</span>
-                        </button>
-                        <button onClick={() => signOut()} className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined">logout</span>
-                            <p className="text-sm font-medium leading-normal">Logout</p>
-                        </button>
-                    </div>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
-                <div className="p-8">
-                    {/* PageHeading */}
-                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6">
-                        <div className="flex min-w-72 flex-col gap-2">
-                            <p className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Create New Course</p>
-                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Fill in the details below to create a new course for the platform.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => handleCreate('draft')}
-                                disabled={isSaving}
-                                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors"
-                            >
-                                <span className="truncate">{isSaving ? 'Saving...' : 'Save Draft'}</span>
+                        <div className="flex flex-col gap-2">
+                            <button className="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+                                <span className="truncate">Create New Course</span>
                             </button>
-                            <button
-                                onClick={() => handleCreate('published')}
-                                disabled={isSaving}
-                                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-success text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-success/90 transition-colors"
-                            >
-                                <span className="truncate">Publish Course</span>
+                            <button onClick={() => signOut()} className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
+                                <span className="material-symbols-outlined">logout</span>
+                                <p className="text-sm font-medium leading-normal">Logout</p>
                             </button>
                         </div>
-                    </header>
+                    </div>
+                </aside>
 
-                    {/* Form Layout */}
-                    <div className="mt-8 grid grid-cols-3 gap-8">
-                        {/* Left Column: Course Settings */}
-                        <div className="col-span-3 lg:col-span-1 flex flex-col gap-6">
-                            <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
-                                <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">Course Settings</h3>
-                                <div className="flex flex-col gap-6">
-                                    <label className="flex flex-col">
-                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Title</p>
-                                        <input
-                                            value={courseForm.title}
-                                            onChange={e => setCourseForm(prev => ({ ...prev, title: e.target.value }))}
-                                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-4 text-base font-normal leading-normal"
-                                            placeholder="e.g. Introduction to Algebra"
-                                        />
-                                    </label>
-                                    <label className="flex flex-col">
-                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Description</p>
-                                        <textarea
-                                            value={courseForm.description}
-                                            onChange={e => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
-                                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark min-h-36 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-4 text-base font-normal leading-normal"
-                                            placeholder="Provide a detailed description of the course..."
-                                        />
-                                    </label>
-                                    <label className="flex flex-col">
-                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
-                                        <select
-                                            value={courseForm.level}
-                                            onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
-                                            className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
-                                        >
-                                            <option value="JAMB">JAMB</option>
-                                            <option value="WAEC">WAEC</option>
-                                            <option value="SS1">SS1</option>
-                                            <option value="SS2">SS2</option>
-                                            <option value="SS3">SS3</option>
-                                            <option value="Others">Others</option>
-                                        </select>
-                                    </label>
-                                    <div className="flex flex-col gap-2">
-                                        <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
-                                        <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
-                                            <button
-                                                onClick={() => setCourseForm(prev => ({ ...prev, is_premium: false }))}
-                                                className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${!courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
-                                            >
-                                                Free
-                                            </button>
-                                            <button
-                                                onClick={() => setCourseForm(prev => ({ ...prev, is_premium: true }))}
-                                                className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
-                                            >
-                                                Premium
-                                            </button>
-                                        </div>
-                                    </div>
+                {/* Main Content */}
+                <main className="flex-1 overflow-y-auto">
+                    <div className="p-8">
+                        {/* PageHeading */}
+                        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6">
+                            <div className="flex min-w-72 flex-col gap-2">
+                                <p className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Create New Course</p>
+                                <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Fill in the details below to create a new course for the platform.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => handleCreate('draft')}
+                                    disabled={isSaving}
+                                    className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors"
+                                >
+                                    <span className="truncate">{isSaving ? 'Saving...' : 'Save Draft'}</span>
+                                </button>
+                                <button
+                                    onClick={() => handleCreate('published')}
+                                    disabled={isSaving}
+                                    className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-success text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-success/90 transition-colors"
+                                >
+                                    <span className="truncate">Publish Course</span>
+                                </button>
+                            </div>
+                        </header>
 
-                                    {courseForm.is_premium && (
+                        {/* Form Layout */}
+                        <div className="mt-8 grid grid-cols-3 gap-8">
+                            {/* Left Column: Course Settings */}
+                            <div className="col-span-3 lg:col-span-1 flex flex-col gap-6">
+                                <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
+                                    <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">Course Settings</h3>
+                                    <div className="flex flex-col gap-6">
                                         <label className="flex flex-col">
-                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Price (NGN)</p>
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Title</p>
                                             <input
-                                                type="number"
-                                                value={courseForm.price}
-                                                onChange={e => setCourseForm(prev => ({ ...prev, price: Number(e.target.value) }))}
-                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                                value={courseForm.title}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, title: e.target.value }))}
+                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-4 text-base font-normal leading-normal"
+                                                placeholder="e.g. Introduction to Algebra"
                                             />
                                         </label>
-                                    )}
+                                        <label className="flex flex-col">
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Description</p>
+                                            <textarea
+                                                value={courseForm.description}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
+                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark min-h-36 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-4 text-base font-normal leading-normal"
+                                                placeholder="Provide a detailed description of the course..."
+                                            />
+                                        </label>
+                                        <label className="flex flex-col">
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
+                                            <select
+                                                value={courseForm.level}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
+                                                className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                            >
+                                                <option value="JAMB">JAMB</option>
+                                                <option value="WAEC">WAEC</option>
+                                                <option value="SS1">SS1</option>
+                                                <option value="SS2">SS2</option>
+                                                <option value="SS3">SS3</option>
+                                                <option value="Others">Others</option>
+                                            </select>
+                                        </label>
+                                        <div className="flex flex-col gap-2">
+                                            <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
+                                            <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
+                                                <button
+                                                    onClick={() => setCourseForm(prev => ({ ...prev, is_premium: false }))}
+                                                    className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${!courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
+                                                >
+                                                    Free
+                                                </button>
+                                                <button
+                                                    onClick={() => setCourseForm(prev => ({ ...prev, is_premium: true }))}
+                                                    className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
+                                                >
+                                                    Premium
+                                                </button>
+                                            </div>
+                                        </div>
 
-                                    <div className="flex flex-col gap-2">
-                                        <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Status</p>
-                                        <div className="inline-flex items-center gap-2">
-                                            <span className="px-3 py-1 text-sm font-medium rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 capitalize">
-                                                {courseForm.status}
-                                            </span>
+                                        {courseForm.is_premium && (
+                                            <label className="flex flex-col">
+                                                <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Price (NGN)</p>
+                                                <input
+                                                    type="number"
+                                                    value={courseForm.price}
+                                                    onChange={e => setCourseForm(prev => ({ ...prev, price: Number(e.target.value) }))}
+                                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                                />
+                                            </label>
+                                        )}
+
+                                        <div className="flex flex-col gap-2">
+                                            <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Status</p>
+                                            <div className="inline-flex items-center gap-2">
+                                                <span className="px-3 py-1 text-sm font-medium rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 capitalize">
+                                                    {courseForm.status}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Right Column: Placeholder for Modules */}
-                        <div className="col-span-3 lg:col-span-2 flex flex-col gap-6">
-                            <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark opacity-75">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Course Modules</h3>
-                                </div>
-
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                                        <span className="material-symbols-outlined text-3xl text-primary">school</span>
+                            {/* Right Column: Placeholder for Modules */}
+                            <div className="col-span-3 lg:col-span-2 flex flex-col gap-6">
+                                <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark opacity-75">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Course Modules</h3>
                                     </div>
-                                    <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
-                                        Start Your Course
-                                    </h4>
-                                    <p className="text-text-secondary-light dark:text-text-secondary-dark max-w-sm mb-6">
-                                        Fill in the course details on the left and click "Save Draft" or "Publish" to start adding modules and lessons.
-                                    </p>
-                                    <Button onClick={() => handleCreate()} isLoading={isSaving} size="md">
-                                        Create Course
-                                    </Button>
+
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                                            <span className="material-symbols-outlined text-3xl text-primary">school</span>
+                                        </div>
+                                        <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
+                                            Start Your Course
+                                        </h4>
+                                        <p className="text-text-secondary-light dark:text-text-secondary-dark max-w-sm mb-6">
+                                            Fill in the course details on the left and click "Save Draft" or "Publish" to start adding modules and lessons.
+                                        </p>
+                                        <Button onClick={() => handleCreate()} isLoading={isSaving} size="md">
+                                            Create Course
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+                <MobileNav role="admin" />
+            </div>
+        </AdminGuard>
     );
 }

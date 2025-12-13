@@ -9,9 +9,15 @@ export {
     Skeleton,
     TextSkeleton,
     CardSkeleton,
+    CourseGridSkeleton,
     TableRowSkeleton,
+    TableSkeleton,
     AvatarSkeleton,
     StatsSkeleton,
-    ListSkeleton
+    DashboardSkeleton,
+    ListSkeleton,
+    ProfileSkeleton,
+    CourseDetailSkeleton,
+    InlineSkeleton,
 } from './Skeleton';
 export { ToastProvider, useToast } from './Toast';

@@ -9,8 +9,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { CourseProgress } from '@/components/ui/Progress';
 import { LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { CardSkeleton, StatsSkeleton } from '@/components/ui/Skeleton';
-import { getUserEnrollments, getCourseProgress, getCourses } from '@/lib/api/courses';
+import { CardSkeleton, StatsSkeleton, CourseGridSkeleton, Skeleton } from '@/components/ui/Skeleton';
+import { getUserEnrollments, getCourseProgress, getLessonProgress } from '@/lib/api/courses';
 import { getUserQuizStats } from '@/lib/api/quiz';
 import { CourseLevel } from '@/types/database';
 
@@ -57,20 +57,44 @@ export default function DashboardPage() {
 
                         const progress = await getCourseProgress(user.id, course.id);
 
-                        // Find the first lesson ID to link to
-                        let firstLessonId = '';
+                        // Smart Resume Logic: Find the first uncompleted lesson
+                        let nextLessonId = '';
+
                         // accessing via 'any' because strict typing of deeply nested join might be tricky without full generation
                         const modules = (course as any).modules;
+
                         if (modules && modules.length > 0) {
-                            // Modules are already sorted by getUserEnrollments
-                            const firstModule = modules[0];
-                            if (firstModule.lessons && firstModule.lessons.length > 0) {
-                                firstLessonId = firstModule.lessons[0].id;
+                            // Flatten all lessons in order
+                            const allLessons: any[] = [];
+                            modules.forEach((m: any) => {
+                                if (m.lessons && m.lessons.length > 0) {
+                                    allLessons.push(...m.lessons);
+                                }
+                            });
+
+                            if (allLessons.length > 0) {
+                                // Default to first lesson
+                                nextLessonId = allLessons[0].id;
+
+                                // Check which ones are completed
+                                const lessonIds = allLessons.map(l => l.id);
+                                const completedLessons = await getLessonProgress(user.id, lessonIds);
+                                const completedSet = new Set(completedLessons.map((p: any) => p.lesson_id));
+
+                                // Find first uncompleted
+                                const firstUncompleted = allLessons.find(l => !completedSet.has(l.id));
+
+                                if (firstUncompleted) {
+                                    nextLessonId = firstUncompleted.id;
+                                } else {
+                                    // All completed? Link to the last one or stay at first?
+                                    // Let's link to the first one for "Review" (or ideally the last one?)
+                                    // For now, if all completed, we can just point to the first one again or the certificate page if we had one.
+                                    // Let's explicitly set it to the first one if everything is done.
+                                    nextLessonId = allLessons[0].id;
+                                }
                             }
                         }
-
-                        // Ideally we'd find the *next* uncompleted lesson here, but first lesson is a safe fallback
-                        // to prevent 404s.
 
                         return {
                             id: course.id,
@@ -83,7 +107,7 @@ export default function DashboardPage() {
                                 completed: progress.completed,
                                 total: progress.total,
                             },
-                            currentLessonId: firstLessonId
+                            currentLessonId: nextLessonId
                         };
                     })
                 );
@@ -128,8 +152,8 @@ export default function DashboardPage() {
                     <Header user={null} />
                     <main className="p-4 lg:p-6 pb-20 lg:pb-6">
                         <div className="mb-6">
-                            <div className="skeleton h-8 w-48 mb-2" />
-                            <div className="skeleton h-4 w-64" />
+                            <Skeleton className="h-8 w-48 mb-2" />
+                            <Skeleton className="h-4 w-64" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                             {[...Array(4)].map((_, i) => (
@@ -251,11 +275,7 @@ export default function DashboardPage() {
                         </div>
 
                         {isLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[...Array(3)].map((_, i) => (
-                                    <CardSkeleton key={i} />
-                                ))}
-                            </div>
+                            <CourseGridSkeleton count={3} />
                         ) : enrolledCourses.length === 0 ? (
                             <Card className="text-center py-12">
                                 <div className="w-16 h-16 mx-auto mb-4 bg-[var(--muted)] rounded-full flex items-center justify-center">
@@ -305,7 +325,11 @@ export default function DashboardPage() {
                                                     size="sm"
                                                     className="w-full mt-4"
                                                 >
-                                                    {course.progress.completed === course.progress.total ? 'Review Course' : 'Continue'}
+                                                    {course.progress.completed === 0
+                                                        ? 'Start Learning'
+                                                        : course.progress.completed === course.progress.total
+                                                            ? 'Review Course'
+                                                            : 'Continue Learning'}
                                                 </Button>
                                             </div>
                                         </Card>

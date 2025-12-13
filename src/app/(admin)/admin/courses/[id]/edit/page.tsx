@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
+import { PageLoader } from '@/components/ui/PageLoader';
 import { Header } from '@/components/layout/Header';
 import { CourseForm } from '@/components/admin/CourseForm';
 import { useToast } from '@/components/ui/Toast';
@@ -11,13 +12,16 @@ import { getCourseById, updateCourse } from '@/lib/api/courses';
 
 export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { profile, signOut } = useAuth();
+    const { profile, signOut, user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [initialData, setInitialData] = useState<any>(null);
 
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) return;
+
         async function loadCourse() {
             try {
                 const data = await getCourseById(id);
@@ -33,7 +37,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
             }
         }
         loadCourse();
-    }, [id, router, addToast]);
+    }, [id, router, addToast, user, authLoading]);
 
     const handleSubmit = async (data: any) => {
         setIsLoading(true);
@@ -57,12 +61,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         }
     };
 
-    if (!initialData) {
-        return (
-            <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-            </div>
-        );
+    if (authLoading || !initialData) {
+        return <PageLoader role="admin" />;
     }
 
     return (

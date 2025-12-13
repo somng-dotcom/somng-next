@@ -13,9 +13,11 @@ interface AuthContextType {
     isLoading: boolean;
     signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
     signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+    signInWithGoogle: () => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
     updateProfile: (data: Partial<Profile>) => Promise<{ error: Error | null }>;
     updatePassword: (password: string) => Promise<{ error: Error | null }>;
+    resetPasswordForEmail: (email: string) => Promise<{ error: Error | null }>;
     refreshProfile: () => Promise<void>;
 }
 
@@ -117,6 +119,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Sign in with Google
+    const signInWithGoogle = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                },
+            });
+
+            if (error) throw error;
+            return { error: null };
+        } catch (error) {
+            return { error: error as Error };
+        }
+    };
+
     // Sign out
     const signOut = async () => {
         try {
@@ -165,6 +184,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Reset password for email
+    const resetPasswordForEmail = async (email: string) => {
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/update-password`,
+            });
+
+            if (error) throw error;
+            return { error: null };
+        } catch (error) {
+            return { error: error as Error };
+        }
+    };
+
     // Refresh profile manually
     const refreshProfile = async () => {
         if (user) {
@@ -181,9 +214,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isLoading,
                 signUp,
                 signIn,
+                signInWithGoogle,
                 signOut,
                 updateProfile,
                 updatePassword,
+                resetPasswordForEmail,
                 refreshProfile,
             }}
         >
