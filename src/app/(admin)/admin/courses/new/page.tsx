@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/Toast';
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 
 export default function NewCoursePage() {
-    const { user, profile, signOut, isLoading } = useAuth();
+    const { user, profile, isLoading } = useAuth();
     const router = useRouter();
     const { addToast } = useToast();
 
@@ -35,6 +34,12 @@ export default function NewCoursePage() {
     const handleCreate = async (statusOverride?: 'published' | 'draft') => {
         if (!user) {
             addToast({ type: 'error', title: 'Error', message: 'You must be logged in.' });
+            return;
+        }
+
+        // Validation
+        if (courseForm.is_premium && courseForm.price <= 0) {
+            addToast({ type: 'error', title: 'Validation Error', message: 'Premium courses must have a price greater than 0.' });
             return;
         }
 
@@ -65,9 +70,10 @@ export default function NewCoursePage() {
 
             // Redirect to the editor page to add content
             router.push(`/admin/courses/${newCourse.id}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to create course:', error);
-            addToast({ type: 'error', title: 'Failed to create course', message: error.message });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            addToast({ type: 'error', title: 'Failed to create course', message: errorMessage });
         } finally {
             setIsSaving(false);
         }
@@ -75,57 +81,11 @@ export default function NewCoursePage() {
 
     return (
         <AdminGuard profile={profile} isLoading={isLoading}>
-            <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
-                {/* SideNavBar - Inline implementation matching HTML structure */}
-                <aside className="flex w-64 flex-col border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hidden lg:flex">
-                    <div className="flex h-full flex-col justify-between p-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-3 px-2">
-                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                    SM
-                                </div>
-                                <div className="flex flex-col">
-                                    <h1 className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Admin</h1>
-                                    <p className="text-sm font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">School of Mathematics</p>
-                                </div>
-                            </div>
-                            <nav className="mt-4 flex flex-col gap-2">
-                                <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined">dashboard</span>
-                                    <p className="text-sm font-medium leading-normal">Dashboard</p>
-                                </Link>
-                                <Link href="/admin/courses" className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors">
-                                    <span className="material-symbols-outlined fill">school</span>
-                                    <p className="text-sm font-medium leading-normal">Courses</p>
-                                </Link>
-                                <Link href="/admin/students" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined">group</span>
-                                    <p className="text-sm font-medium leading-normal">Students</p>
-                                </Link>
-                                <Link href="/admin/analytics" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined">analytics</span>
-                                    <p className="text-sm font-medium leading-normal">Analytics</p>
-                                </Link>
-                                <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined">settings</span>
-                                    <p className="text-sm font-medium leading-normal">Settings</p>
-                                </Link>
-                            </nav>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <button className="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
-                                <span className="truncate">Create New Course</span>
-                            </button>
-                            <button onClick={() => signOut()} className="flex items-center gap-3 rounded-lg px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark hover:bg-primary/10 hover:text-primary transition-colors">
-                                <span className="material-symbols-outlined">logout</span>
-                                <p className="text-sm font-medium leading-normal">Logout</p>
-                            </button>
-                        </div>
-                    </div>
-                </aside>
+            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+                <Sidebar role="admin" />
 
                 {/* Main Content */}
-                <main className="flex-1 overflow-y-auto">
+                <div className="flex-1 lg:ml-64">
                     <div className="p-8">
                         {/* PageHeading */}
                         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6">
@@ -248,7 +208,7 @@ export default function NewCoursePage() {
                                             Start Your Course
                                         </h4>
                                         <p className="text-text-secondary-light dark:text-text-secondary-dark max-w-sm mb-6">
-                                            Fill in the course details on the left and click "Save Draft" or "Publish" to start adding modules and lessons.
+                                            Fill in the course details on the left and click &quot;Save Draft&quot; or &quot;Publish&quot; to start adding modules and lessons.
                                         </p>
                                         <Button onClick={() => handleCreate()} isLoading={isSaving} size="md">
                                             Create Course
@@ -258,9 +218,10 @@ export default function NewCoursePage() {
                             </div>
                         </div>
                     </div>
-                </main>
+                </div>
                 <MobileNav role="admin" />
             </div>
         </AdminGuard>
     );
 }
+

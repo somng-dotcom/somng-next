@@ -31,13 +31,46 @@ export default function PaymentsPage() {
 
         async function loadPayments() {
             try {
-                // In production, this would be an actual API call
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setPayments([
-                    { id: '1', student_name: 'Adekunle Gold', student_email: 'ade@email.com', course_title: 'Advanced Calculus', amount: 15000, status: 'successful', created_at: new Date().toISOString(), transaction_id: 'TXN123456789' },
-                    { id: '2', student_name: 'Burna Boy', student_email: 'burna@email.com', course_title: 'Linear Algebra', amount: 20000, status: 'pending', created_at: new Date().toISOString(), transaction_id: 'TXN987654321' },
-                    { id: '3', student_name: 'Chioma Ada', student_email: 'chi@email.com', course_title: 'Statistics', amount: 10000, status: 'failed', created_at: new Date().toISOString(), transaction_id: 'TXN555666777' },
-                ]);
+                const supabase = createClient();
+                const { data, error } = await supabase
+                    .from('payments')
+                    .select(`
+                        id,
+                        amount,
+                        status,
+                        created_at,
+                        provider_reference,
+                        profiles:user_id (full_name, email),
+                        courses:course_id (title)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (data) {
+                    // Define type for the joined query result
+                    type RawPaymentDetails = {
+                        id: string;
+                        amount: number;
+                        status: string;
+                        created_at: string;
+                        provider_reference: string | null;
+                        profiles: { full_name: string | null; email: string } | null;
+                        courses: { title: string } | null;
+                    };
+
+                    const formattedPayments: Payment[] = (data as unknown as RawPaymentDetails[]).map((item) => ({
+                        id: item.id,
+                        student_name: item.profiles?.full_name || 'Unknown Student',
+                        student_email: item.profiles?.email || 'No Email',
+                        course_title: item.courses?.title || 'Unknown Course',
+                        amount: item.amount,
+                        status: item.status as 'successful' | 'pending' | 'failed', // Cast to known union type
+                        created_at: item.created_at,
+                        transaction_id: item.provider_reference || 'N/A'
+                    }));
+                    setPayments(formattedPayments);
+                }
             } catch (error) {
                 console.error('Failed to load payments:', error);
             } finally {

@@ -12,6 +12,7 @@ import { LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import { getCourseBySlug, isUserEnrolled, enrollUser } from '@/lib/api/courses';
 import { useToast } from '@/components/ui/Toast';
+import PaystackPayment from '@/components/paystack/PaystackPayment';
 
 interface Lesson {
     id: string;
@@ -88,7 +89,7 @@ export default function CourseDetailPage() {
         }
     }, [slug, user, router, addToast]);
 
-    const handleEnroll = async () => {
+    const handleFreeEnroll = async () => {
         if (!user) {
             router.push('/login');
             return;
@@ -111,80 +112,16 @@ export default function CourseDetailPage() {
             }
             return;
         }
+    };
 
-        // For premium courses, use Flutterwave
-        const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY;
-
-        if (!publicKey) {
-            addToast({ type: 'error', title: 'Payment not configured. Please contact support.' });
-            return;
+    const handlePaymentSuccess = () => {
+        setIsEnrolled(true);
+        addToast({ type: 'success', title: 'Payment successful! You are now enrolled.' });
+        // Redirect to first lesson
+        const firstLessonId = course?.modules?.[0]?.lessons?.[0]?.id;
+        if (firstLessonId) {
+            router.push(`/courses/${course?.slug}/learn/${firstLessonId}`);
         }
-
-        setIsEnrolling(true);
-
-        // Load Flutterwave inline script if not already loaded
-        if (!(window as any).FlutterwaveCheckout) {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.flutterwave.com/v3.js';
-            script.async = true;
-            document.body.appendChild(script);
-
-            await new Promise((resolve) => {
-                script.onload = resolve;
-            });
-        }
-
-        // Initialize Flutterwave payment
-        (window as any).FlutterwaveCheckout({
-            public_key: publicKey,
-            tx_ref: `course_${course.id}_${user.id}_${Date.now()}`,
-            amount: course.price,
-            currency: 'NGN',
-            payment_options: 'card,banktransfer,ussd',
-            customer: {
-                email: profile?.email || user.email || '',
-                name: profile?.full_name || 'Student',
-            },
-            customizations: {
-                title: 'School of Mathematics Nigeria',
-                description: `Enrollment: ${course.title}`,
-                logo: `${window.location.origin}/somng%20logo.jpeg`,
-            },
-            callback: async (response: any) => {
-                // Verify payment on backend
-                try {
-                    const verifyResponse = await fetch('/api/payments/verify', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            transaction_id: response.transaction_id,
-                            course_id: course.id,
-                        }),
-                    });
-
-                    const result = await verifyResponse.json();
-
-                    if (result.success) {
-                        setIsEnrolled(true);
-                        addToast({ type: 'success', title: 'Payment successful! You are now enrolled.' });
-                        // Redirect to first lesson
-                        const firstLessonId = course.modules?.[0]?.lessons?.[0]?.id;
-                        if (firstLessonId) {
-                            router.push(`/courses/${course.slug}/learn/${firstLessonId}`);
-                        }
-                    } else {
-                        addToast({ type: 'error', title: result.error || 'Payment verification failed' });
-                    }
-                } catch (error: any) {
-                    console.error('Verification error:', error);
-                    addToast({ type: 'error', title: 'Payment verification failed. Please contact support.' });
-                }
-                setIsEnrolling(false);
-            },
-            onclose: () => {
-                setIsEnrolling(false);
-            },
-        });
     };
 
     const toggleModule = (moduleId: string) => {
@@ -329,14 +266,25 @@ export default function CourseDetailPage() {
                                                         Continue Learning
                                                     </Button>
                                                 </Link>
+                                            ) : course.is_premium ? (
+                                                <PaystackPayment 
+                                                    email={profile?.email || user?.email || ''}
+                                                    amount={course.price}
+                                                    courseId={course.id}
+                                                    onSuccess={handlePaymentSuccess}
+                                                    fullWidth
+                                                    size="lg"
+                                                >
+                                                    Enroll Now
+                                                </PaystackPayment>
                                             ) : (
                                                 <Button
                                                     fullWidth
                                                     size="lg"
-                                                    onClick={handleEnroll}
+                                                    onClick={handleFreeEnroll}
                                                     isLoading={isEnrolling}
                                                 >
-                                                    {course.is_premium ? 'Enroll Now' : 'Start Free Course'}
+                                                    Start Free Course
                                                 </Button>
                                             )}
 
