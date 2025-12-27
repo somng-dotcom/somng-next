@@ -4,8 +4,6 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -22,7 +20,6 @@ import {
 import { FileUploader } from '@/components/ui/FileUploader';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { QuizBuilder } from '@/components/admin/QuizBuilder';
-import { AdminGuard } from '@/components/auth/AdminGuard';
 
 // Helper for class names
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -208,408 +205,409 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
         });
     };
 
-    if (authLoading || isLoading) return <PageLoader role="admin" />;
+    if (authLoading || isLoading) {
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            </div>
+        );
+    }
 
     return (
-        <AdminGuard profile={profile} isLoading={authLoading}>
-            <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
-                <Sidebar role="admin" />
+        <>
+            {/* Main Content */}
+            <div className="h-full">
+                <div className="p-8">
+                    {/* PageHeading */}
+                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6">
+                        <div className="flex min-w-72 flex-col gap-2">
+                            <p className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">{courseForm.title || 'Create New Course'}</p>
+                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Fill in the details below to create a new course for the platform.</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => saveCourse('draft')}
+                                disabled={isSaving}
+                                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors"
+                            >
+                                <span className="truncate">{isSaving ? 'Saving...' : 'Save Draft'}</span>
+                            </button>
+                            <button
+                                onClick={() => saveCourse('published')}
+                                disabled={isSaving}
+                                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-success text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-success/90 transition-colors"
+                            >
+                                <span className="truncate">Publish Course</span>
+                            </button>
+                        </div>
+                    </header>
 
-                {/* Main Content */}
-                <main className="flex-1 overflow-y-auto lg:ml-64">
-                    <div className="p-8">
-                        {/* PageHeading */}
-                        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6">
-                            <div className="flex min-w-72 flex-col gap-2">
-                                <p className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">{courseForm.title || 'Create New Course'}</p>
-                                <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Fill in the details below to create a new course for the platform.</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => saveCourse('draft')}
-                                    disabled={isSaving}
-                                    className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-background-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors"
-                                >
-                                    <span className="truncate">{isSaving ? 'Saving...' : 'Save Draft'}</span>
-                                </button>
-                                <button
-                                    onClick={() => saveCourse('published')}
-                                    disabled={isSaving}
-                                    className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-success text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-success/90 transition-colors"
-                                >
-                                    <span className="truncate">Publish Course</span>
-                                </button>
-                            </div>
-                        </header>
-
-                        {/* Form Layout */}
-                        <div className="mt-8 grid grid-cols-3 gap-8">
-                            {/* Left Column: Course Settings */}
-                            <div className="col-span-3 lg:col-span-1 flex flex-col gap-6">
-                                <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
-                                    <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">Course Settings</h3>
-                                    <div className="flex flex-col gap-6">
-                                        <label className="flex flex-col">
-                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Title</p>
-                                            <input
-                                                value={courseForm.title}
-                                                onChange={e => setCourseForm(prev => ({ ...prev, title: e.target.value }))}
-                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-4 text-base font-normal leading-normal"
-                                                placeholder="e.g. Introduction to Algebra"
-                                            />
-                                        </label>
-                                        <label className="flex flex-col">
-                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Description</p>
-                                            <textarea
-                                                value={courseForm.description}
-                                                onChange={e => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
-                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark min-h-36 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-4 text-base font-normal leading-normal"
-                                                placeholder="Provide a detailed description of the course..."
-                                            />
-                                        </label>
-                                        <label className="flex flex-col">
-                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
-                                            <select
-                                                value={courseForm.level}
-                                                onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
-                                                className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                    {/* Form Layout */}
+                    <div className="mt-8 grid grid-cols-3 gap-8">
+                        {/* Left Column: Course Settings */}
+                        <div className="col-span-3 lg:col-span-1 flex flex-col gap-6">
+                            <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
+                                <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">Course Settings</h3>
+                                <div className="flex flex-col gap-6">
+                                    <label className="flex flex-col">
+                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Title</p>
+                                        <input
+                                            value={courseForm.title}
+                                            onChange={e => setCourseForm(prev => ({ ...prev, title: e.target.value }))}
+                                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark px-4 text-base font-normal leading-normal"
+                                            placeholder="e.g. Introduction to Algebra"
+                                        />
+                                    </label>
+                                    <label className="flex flex-col">
+                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Description</p>
+                                        <textarea
+                                            value={courseForm.description}
+                                            onChange={e => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
+                                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark min-h-36 placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark p-4 text-base font-normal leading-normal"
+                                            placeholder="Provide a detailed description of the course..."
+                                        />
+                                    </label>
+                                    <label className="flex flex-col">
+                                        <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
+                                        <select
+                                            value={courseForm.level}
+                                            onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
+                                            className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                        >
+                                            <option value="JAMB">JAMB</option>
+                                            <option value="WAEC">WAEC</option>
+                                            <option value="SS1">SS1</option>
+                                            <option value="SS2">SS2</option>
+                                            <option value="SS3">SS3</option>
+                                            <option value="Others">Others</option>
+                                        </select>
+                                    </label>
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
+                                        <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
+                                            <button
+                                                onClick={() => setCourseForm(prev => ({ ...prev, is_premium: false }))}
+                                                className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${!courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
                                             >
-                                                <option value="JAMB">JAMB</option>
-                                                <option value="WAEC">WAEC</option>
-                                                <option value="SS1">SS1</option>
-                                                <option value="SS2">SS2</option>
-                                                <option value="SS3">SS3</option>
-                                                <option value="Others">Others</option>
-                                            </select>
-                                        </label>
-                                        <div className="flex flex-col gap-2">
-                                            <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
-                                            <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
-                                                <button
-                                                    onClick={() => setCourseForm(prev => ({ ...prev, is_premium: false }))}
-                                                    className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${!courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
-                                                >
-                                                    Free
-                                                </button>
-                                                <button
-                                                    onClick={() => setCourseForm(prev => ({ ...prev, is_premium: true }))}
-                                                    className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
-                                                >
-                                                    Premium
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {courseForm.is_premium && (
-                                            <label className="flex flex-col">
-                                                <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Price (NGN)</p>
-                                                <input
-                                                    type="number"
-                                                    value={courseForm.price}
-                                                    onChange={e => setCourseForm(prev => ({ ...prev, price: Number(e.target.value) }))}
-                                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
-                                                />
-                                            </label>
-                                        )}
-
-                                        <div className="flex flex-col gap-2">
-                                            <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Status</p>
-                                            <div className="inline-flex items-center gap-2">
-                                                <span className="px-3 py-1 text-sm font-medium rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 capitalize">
-                                                    {courseForm.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="border-t border-border-light dark:border-border-dark pt-6 mt-2">
-                                            <button className="w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-danger/10 text-danger text-sm font-bold leading-normal tracking-[0.015em] hover:bg-danger/20 transition-colors">
-                                                <span className="truncate">Delete Course</span>
+                                                Free
+                                            </button>
+                                            <button
+                                                onClick={() => setCourseForm(prev => ({ ...prev, is_premium: true }))}
+                                                className={`flex-1 text-center text-sm font-semibold py-2 rounded-md transition-all ${courseForm.is_premium ? 'bg-surface-light dark:bg-surface-dark text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
+                                            >
+                                                Premium
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Right Column: Course Content Builder */}
-                            <div className="col-span-3 lg:col-span-2 flex flex-col gap-6">
-                                <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Course Modules</h3>
-                                        <button
-                                            onClick={() => {
-                                                setEditingModule(null);
-                                                setModuleFormData({ title: '', description: '' });
-                                                setIsModuleModalOpen(true);
-                                            }}
-                                            className="flex items-center gap-2 min-w-[84px] cursor-pointer justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary/10 text-primary text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/20 transition-colors"
-                                        >
-                                            <span className="material-symbols-outlined text-base">add_circle</span>
-                                            <span className="truncate">Add New Module</span>
+                                    {courseForm.is_premium && (
+                                        <label className="flex flex-col">
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Price (NGN)</p>
+                                            <input
+                                                type="number"
+                                                value={courseForm.price}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, price: Number(e.target.value) }))}
+                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                            />
+                                        </label>
+                                    )}
+
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Status</p>
+                                        <div className="inline-flex items-center gap-2">
+                                            <span className="px-3 py-1 text-sm font-medium rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 capitalize">
+                                                {courseForm.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-border-light dark:border-border-dark pt-6 mt-2">
+                                        <button className="w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-danger/10 text-danger text-sm font-bold leading-normal tracking-[0.015em] hover:bg-danger/20 transition-colors">
+                                            <span className="truncate">Delete Course</span>
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div className="flex flex-col gap-4">
-                                        {course?.modules?.map((module: any, index: number) => (
-                                            <div key={module.id} className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-surface-light dark:bg-surface-dark">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined cursor-grab text-text-secondary-light dark:text-text-secondary-dark">drag_indicator</span>
-                                                        <h4 className="font-semibold text-text-primary-light dark:text-text-primary-dark">Module {index + 1}: {module.title}</h4>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
+                        {/* Right Column: Course Content Builder */}
+                        <div className="col-span-3 lg:col-span-2 flex flex-col gap-6">
+                            <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Course Modules</h3>
+                                    <button
+                                        onClick={() => {
+                                            setEditingModule(null);
+                                            setModuleFormData({ title: '', description: '' });
+                                            setIsModuleModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2 min-w-[84px] cursor-pointer justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary/10 text-primary text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/20 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-base">add_circle</span>
+                                        <span className="truncate">Add New Module</span>
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-col gap-4">
+                                    {course?.modules?.map((module: any, index: number) => (
+                                        <div key={module.id} className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-surface-light dark:bg-surface-dark">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined cursor-grab text-text-secondary-light dark:text-text-secondary-dark">drag_indicator</span>
+                                                    <h4 className="font-semibold text-text-primary-light dark:text-text-primary-dark">Module {index + 1}: {module.title}</h4>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingModule(module);
+                                                            setModuleFormData({ title: module.title, description: module.description });
+                                                            setIsModuleModalOpen(true);
+                                                        }}
+                                                        className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl">edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteModuleItem(module.id)}
+                                                        className="p-1 rounded-md hover:bg-danger/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-danger transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl">delete</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => toggleModuleExpand(module.id)}
+                                                        className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl">
+                                                            {expandedModules.has(module.id) ? 'expand_less' : 'expand_more'}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {expandedModules.has(module.id) && (
+                                                <div className="pl-8 pt-4 flex flex-col gap-3 border-t border-border-light dark:border-border-dark mt-4">
+                                                    {module.lessons?.map((lesson: any) => (
+                                                        <div key={lesson.id} className="flex items-center justify-between p-3 rounded-md bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="material-symbols-outlined cursor-grab text-text-secondary-light dark:text-text-secondary-dark">drag_indicator</span>
+                                                                <span className="material-symbols-outlined text-primary">
+                                                                    {lesson.content_type === 'video' ? 'play_circle' :
+                                                                        lesson.content_type === 'quiz' ? 'quiz' : 'description'}
+                                                                </span>
+                                                                <p className="text-sm text-text-primary-light dark:text-text-primary-dark font-medium">{lesson.title}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {lesson.content_type === 'quiz' && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setCurrentQuizLesson(lesson);
+                                                                            setIsQuizBuilderOpen(true);
+                                                                        }}
+                                                                        className="px-2 py-1 text-xs font-medium text-primary bg-primary/10 rounded hover:bg-primary/20 mr-2 transition-colors"
+                                                                    >
+                                                                        Manage Questions
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setActiveModuleId(module.id);
+                                                                        setEditingLesson(lesson);
+                                                                        setLessonFormData({
+                                                                            title: lesson.title,
+                                                                            content_type: lesson.content_type,
+                                                                            content_url: lesson.content_url || '',
+                                                                            content_text: lesson.content_text || '',
+                                                                            duration_minutes: lesson.duration_minutes || 0,
+                                                                            is_free_preview: lesson.is_free_preview
+                                                                        });
+                                                                        setIsLessonModalOpen(true);
+                                                                    }}
+                                                                    className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-base">edit</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteLessonItem(lesson.id)}
+                                                                    className="p-1 rounded-md hover:bg-danger/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-danger transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-base">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    <div className="mt-2">
                                                         <button
                                                             onClick={() => {
-                                                                setEditingModule(module);
-                                                                setModuleFormData({ title: module.title, description: module.description });
-                                                                setIsModuleModalOpen(true);
+                                                                setActiveModuleId(module.id);
+                                                                setEditingLesson(null);
+                                                                setLessonFormData({
+                                                                    title: '',
+                                                                    content_type: 'video',
+                                                                    content_url: '',
+                                                                    content_text: '',
+                                                                    duration_minutes: 0,
+                                                                    is_free_preview: false
+                                                                });
+                                                                setIsLessonModalOpen(true);
                                                             }}
-                                                            className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
+                                                            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border-light dark:border-border-dark rounded-lg hover:bg-primary/5 hover:border-primary text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
                                                         >
-                                                            <span className="material-symbols-outlined text-xl">edit</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteModuleItem(module.id)}
-                                                            className="p-1 rounded-md hover:bg-danger/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-danger transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-xl">delete</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => toggleModuleExpand(module.id)}
-                                                            className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-xl">
-                                                                {expandedModules.has(module.id) ? 'expand_less' : 'expand_more'}
-                                                            </span>
+                                                            <span className="material-symbols-outlined text-lg">add</span>
+                                                            <span className="text-sm font-medium">Add Content</span>
                                                         </button>
                                                     </div>
                                                 </div>
+                                            )}
+                                        </div>
+                                    ))}
 
-                                                {expandedModules.has(module.id) && (
-                                                    <div className="pl-8 pt-4 flex flex-col gap-3 border-t border-border-light dark:border-border-dark mt-4">
-                                                        {module.lessons?.map((lesson: any) => (
-                                                            <div key={lesson.id} className="flex items-center justify-between p-3 rounded-md bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
-                                                                <div className="flex items-center gap-3">
-                                                                    <span className="material-symbols-outlined cursor-grab text-text-secondary-light dark:text-text-secondary-dark">drag_indicator</span>
-                                                                    <span className="material-symbols-outlined text-primary">
-                                                                        {lesson.content_type === 'video' ? 'play_circle' :
-                                                                            lesson.content_type === 'quiz' ? 'quiz' : 'description'}
-                                                                    </span>
-                                                                    <p className="text-sm text-text-primary-light dark:text-text-primary-dark font-medium">{lesson.title}</p>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    {lesson.content_type === 'quiz' && (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setCurrentQuizLesson(lesson);
-                                                                                setIsQuizBuilderOpen(true);
-                                                                            }}
-                                                                            className="px-2 py-1 text-xs font-medium text-primary bg-primary/10 rounded hover:bg-primary/20 mr-2 transition-colors"
-                                                                        >
-                                                                            Manage Questions
-                                                                        </button>
-                                                                    )}
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setActiveModuleId(module.id);
-                                                                            setEditingLesson(lesson);
-                                                                            setLessonFormData({
-                                                                                title: lesson.title,
-                                                                                content_type: lesson.content_type,
-                                                                                content_url: lesson.content_url || '',
-                                                                                content_text: lesson.content_text || '',
-                                                                                duration_minutes: lesson.duration_minutes || 0,
-                                                                                is_free_preview: lesson.is_free_preview
-                                                                            });
-                                                                            setIsLessonModalOpen(true);
-                                                                        }}
-                                                                        className="p-1 rounded-md hover:bg-primary/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">edit</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => deleteLessonItem(lesson.id)}
-                                                                        className="p-1 rounded-md hover:bg-danger/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-danger transition-colors"
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">delete</span>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-
-                                                        <div className="mt-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setActiveModuleId(module.id);
-                                                                    setEditingLesson(null);
-                                                                    setLessonFormData({
-                                                                        title: '',
-                                                                        content_type: 'video',
-                                                                        content_url: '',
-                                                                        content_text: '',
-                                                                        duration_minutes: 0,
-                                                                        is_free_preview: false
-                                                                    });
-                                                                    setIsLessonModalOpen(true);
-                                                                }}
-                                                                className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border-light dark:border-border-dark rounded-lg hover:bg-primary/5 hover:border-primary text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">add</span>
-                                                                <span className="text-sm font-medium">Add Content</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-
-                                        {(!course?.modules || course.modules.length === 0) && (
-                                            <div className="text-center py-8 text-text-secondary-light dark:text-text-secondary-dark bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg border-dashed">
-                                                No modules yet. Click "Add New Module" to get started.
-                                            </div>
-                                        )}
-                                    </div>
+                                    {(!course?.modules || course.modules.length === 0) && (
+                                        <div className="text-center py-8 text-text-secondary-light dark:text-text-secondary-dark bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg border-dashed">
+                                            No modules yet. Click "Add New Module" to get started.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </main>
-
-                {/* Modals - Keeping existing functional modals but updating classes where relevant */}
-                <Modal
-                    isOpen={isModuleModalOpen}
-                    onClose={() => setIsModuleModalOpen(false)}
-                    title={editingModule ? 'Edit Module' : 'Create Module'}
-                >
-                    <form onSubmit={handleModuleSubmit} className="space-y-4">
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Module Title</span>
-                            <input
-                                required
-                                value={moduleFormData.title}
-                                onChange={(e) => setModuleFormData(prev => ({ ...prev, title: e.target.value }))}
-                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                placeholder="e.g. Algebra Basics"
-                            />
-                        </label>
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Description</span>
-                            <textarea
-                                value={moduleFormData.description}
-                                onChange={(e) => setModuleFormData(prev => ({ ...prev, description: e.target.value }))}
-                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[100px]"
-                                placeholder="Module description..."
-                            />
-                        </label>
-                        <div className="flex justify-end gap-3 mt-6">
-                            <Button type="button" variant="ghost" onClick={() => setIsModuleModalOpen(false)}>Cancel</Button>
-                            <Button type="submit">{editingModule ? 'Save Changes' : 'Create Module'}</Button>
-                        </div>
-                    </form>
-                </Modal>
-
-                <Modal
-                    isOpen={isLessonModalOpen}
-                    onClose={() => setIsLessonModalOpen(false)}
-                    title={editingLesson ? 'Edit Lesson' : 'Add Content'}
-                    size="lg"
-                >
-                    <form onSubmit={handleLessonSubmit} className="space-y-4">
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Title</span>
-                            <input
-                                required
-                                value={lessonFormData.title}
-                                onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
-                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                placeholder="Lesson Title"
-                            />
-                        </label>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className="block">
-                                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content Type</span>
-                                <select
-                                    value={lessonFormData.content_type}
-                                    onChange={(e) => setLessonFormData(prev => ({ ...prev, content_type: e.target.value as 'video' | 'text' | 'pdf' | 'quiz' }))}
-                                    className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                >
-                                    <option value="video">Video</option>
-                                    <option value="text">Text/Article</option>
-                                    <option value="pdf">PDF Document</option>
-                                    <option value="quiz">Quiz</option>
-                                </select>
-                            </label>
-                            <label className="block">
-                                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Duration (min)</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={lessonFormData.duration_minutes}
-                                    onChange={(e) => setLessonFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
-                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                />
-                            </label>
-                        </div>
-
-                        {(lessonFormData.content_type === 'video' || lessonFormData.content_type === 'pdf') && (
-                            <>
-                                <FileUploader
-                                    label={`Upload ${lessonFormData.content_type === 'video' ? 'Video' : 'PDF'}`}
-                                    accept={lessonFormData.content_type === 'video' ? 'video/*' : 'application/pdf'}
-                                    currentUrl={lessonFormData.content_url}
-                                    onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, content_url: url }))}
-                                />
-                                <label className="block">
-                                    <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Or URL</span>
-                                    <input
-                                        value={lessonFormData.content_url}
-                                        onChange={(e) => setLessonFormData(prev => ({ ...prev, content_url: e.target.value }))}
-                                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                        placeholder="https://..."
-                                    />
-                                </label>
-                            </>
-                        )}
-
-                        {lessonFormData.content_type === 'text' && (
-                            <label className="block">
-                                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content</span>
-                                <textarea
-                                    value={lessonFormData.content_text}
-                                    onChange={(e) => setLessonFormData(prev => ({ ...prev, content_text: e.target.value }))}
-                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[200px]"
-                                    placeholder="Write content..."
-                                />
-                            </label>
-                        )}
-
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={lessonFormData.is_free_preview}
-                                onChange={(e) => setLessonFormData(prev => ({ ...prev, is_free_preview: e.target.checked }))}
-                                className="rounded border-border-light dark:border-border-dark text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Free Preview</span>
-                        </label>
-
-                        <div className="flex justify-end gap-3 mt-6">
-                            <Button type="button" variant="ghost" onClick={() => setIsLessonModalOpen(false)}>Cancel</Button>
-                            <Button type="submit" isLoading={isSubmittingLesson}>
-                                {editingLesson ? 'Save Changes' : 'Add Content'}
-                            </Button>
-                        </div>
-                    </form>
-                </Modal>
-
-                {isQuizBuilderOpen && currentQuizLesson && (
-                    <QuizBuilder
-                        lessonId={currentQuizLesson.id}
-                        lessonTitle={currentQuizLesson.title}
-                        onClose={() => setIsQuizBuilderOpen(false)}
-                    />
-                )}
-                <MobileNav role="admin" />
+                </div>
             </div>
-        </AdminGuard>
+
+            {/* Modals - Keeping existing functional modals but updating classes where relevant */}
+            <Modal
+                isOpen={isModuleModalOpen}
+                onClose={() => setIsModuleModalOpen(false)}
+                title={editingModule ? 'Edit Module' : 'Create Module'}
+            >
+                <form onSubmit={handleModuleSubmit} className="space-y-4">
+                    <label className="block">
+                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Module Title</span>
+                        <input
+                            required
+                            value={moduleFormData.title}
+                            onChange={(e) => setModuleFormData(prev => ({ ...prev, title: e.target.value }))}
+                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                            placeholder="e.g. Algebra Basics"
+                        />
+                    </label>
+                    <label className="block">
+                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Description</span>
+                        <textarea
+                            value={moduleFormData.description}
+                            onChange={(e) => setModuleFormData(prev => ({ ...prev, description: e.target.value }))}
+                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[100px]"
+                            placeholder="Module description..."
+                        />
+                    </label>
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button type="button" variant="ghost" onClick={() => setIsModuleModalOpen(false)}>Cancel</Button>
+                        <Button type="submit">{editingModule ? 'Save Changes' : 'Create Module'}</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal
+                isOpen={isLessonModalOpen}
+                onClose={() => setIsLessonModalOpen(false)}
+                title={editingLesson ? 'Edit Lesson' : 'Add Content'}
+                size="lg"
+            >
+                <form onSubmit={handleLessonSubmit} className="space-y-4">
+                    <label className="block">
+                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Title</span>
+                        <input
+                            required
+                            value={lessonFormData.title}
+                            onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
+                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                            placeholder="Lesson Title"
+                        />
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <label className="block">
+                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content Type</span>
+                            <select
+                                value={lessonFormData.content_type}
+                                onChange={(e) => setLessonFormData(prev => ({ ...prev, content_type: e.target.value as 'video' | 'text' | 'pdf' | 'quiz' }))}
+                                className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                            >
+                                <option value="video">Video</option>
+                                <option value="text">Text/Article</option>
+                                <option value="pdf">PDF Document</option>
+                                <option value="quiz">Quiz</option>
+                            </select>
+                        </label>
+                        <label className="block">
+                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Duration (min)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={lessonFormData.duration_minutes}
+                                onChange={(e) => setLessonFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
+                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                            />
+                        </label>
+                    </div>
+
+                    {(lessonFormData.content_type === 'video' || lessonFormData.content_type === 'pdf') && (
+                        <>
+                            <FileUploader
+                                label={`Upload ${lessonFormData.content_type === 'video' ? 'Video' : 'PDF'}`}
+                                accept={lessonFormData.content_type === 'video' ? 'video/*' : 'application/pdf'}
+                                currentUrl={lessonFormData.content_url}
+                                onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, content_url: url }))}
+                            />
+                            <label className="block">
+                                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Or URL</span>
+                                <input
+                                    value={lessonFormData.content_url}
+                                    onChange={(e) => setLessonFormData(prev => ({ ...prev, content_url: e.target.value }))}
+                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                                    placeholder="https://..."
+                                />
+                            </label>
+                        </>
+                    )}
+
+                    {lessonFormData.content_type === 'text' && (
+                        <label className="block">
+                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content</span>
+                            <textarea
+                                value={lessonFormData.content_text}
+                                onChange={(e) => setLessonFormData(prev => ({ ...prev, content_text: e.target.value }))}
+                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[200px]"
+                                placeholder="Write content..."
+                            />
+                        </label>
+                    )}
+
+                    <label className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={lessonFormData.is_free_preview}
+                            onChange={(e) => setLessonFormData(prev => ({ ...prev, is_free_preview: e.target.checked }))}
+                            className="rounded border-border-light dark:border-border-dark text-primary focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Free Preview</span>
+                    </label>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button type="button" variant="ghost" onClick={() => setIsLessonModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" isLoading={isSubmittingLesson}>
+                            {editingLesson ? 'Save Changes' : 'Add Content'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {isQuizBuilderOpen && currentQuizLesson && (
+                <QuizBuilder
+                    lessonId={currentQuizLesson.id}
+                    lessonTitle={currentQuizLesson.title}
+                    onClose={() => setIsQuizBuilderOpen(false)}
+                />
+            )}
+        </>
     );
 }
