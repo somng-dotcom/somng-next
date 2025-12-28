@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { SiteSettings } from '@/types/settings';
+import { PostgrestError } from '@supabase/supabase-js';
 
 export async function getSiteSettings(): Promise<SiteSettings | null> {
     const supabase = createClient();
@@ -20,7 +21,7 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
     return data as SiteSettings;
 }
 
-export async function updateSiteSettings(id: string, updates: Partial<SiteSettings>): Promise<{ error: any }> {
+export async function updateSiteSettings(id: string, updates: Partial<SiteSettings>): Promise<{ error: PostgrestError | null }> {
     const supabase = createClient();
 
     const { error } = await supabase

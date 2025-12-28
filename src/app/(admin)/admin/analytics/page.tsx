@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { getAdminStats } from '@/lib/api/courses';
 import Link from 'next/link';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 interface TopCourse {
     id: string;
@@ -77,8 +78,10 @@ export default function AnalyticsPage() {
 
     if (isAuthLoading || isLoading) {
         return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+                <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                    <DashboardSkeleton />
+                </div>
             </div>
         );
     }
@@ -87,7 +90,7 @@ export default function AnalyticsPage() {
         <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
-                <div className="p-8">
+                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                     {/* Header */}
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
                         <div className="flex min-w-72 flex-col gap-2">
@@ -118,22 +121,25 @@ export default function AnalyticsPage() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
-                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Total Student Enrollments</p>
-                            <p className="text-text-primary-light dark:text-text-primary-dark text-3xl font-bold">
-                                {isLoading ? '...' : (stats?.totalEnrollments || 0).toLocaleString()}
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
                             <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Total Revenue</p>
                             <p className="text-text-primary-light dark:text-text-primary-dark text-3xl font-bold">
                                 {isLoading ? '...' : formatCurrency(stats?.totalRevenue || 0)}
                             </p>
+                            <p className="text-success text-sm font-medium">+2.5%</p>
                         </div>
                         <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
-                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Total Students</p>
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Successful Transactions</p>
                             <p className="text-text-primary-light dark:text-text-primary-dark text-3xl font-bold">
-                                {isLoading ? '...' : (stats?.totalStudents || 0).toLocaleString()}
+                                {isLoading ? '...' : (stats?.successfulTransactions || 0).toLocaleString()}
                             </p>
+                            <p className="text-success text-sm font-medium">+1.2%</p>
+                        </div>
+                        <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Pending Payments</p>
+                            <p className="text-text-primary-light dark:text-text-primary-dark text-3xl font-bold">
+                                {isLoading ? '...' : (stats?.pendingPayments || 0).toLocaleString()}
+                            </p>
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Needs attention</p>
                         </div>
                         <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
                             <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Total Courses</p>

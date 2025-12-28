@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { MobileNav } from '@/components/layout/Sidebar';
 
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { getAdminCourses, deleteCourse } from '@/lib/api/courses';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 
 interface Course {
     id: string;
@@ -63,10 +65,22 @@ export default function AdminCoursesPage() {
         }).format(price);
     };
 
+
+
+    // ... existing code ...
+
     if (authLoading || isLoading) {
         return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+                <main className="flex-1 overflow-y-auto">
+                    <div className="p-8">
+                        <div className="flex justify-between mb-8">
+                            <div className="h-16 w-64 bg-surface-light dark:bg-surface-dark rounded-lg animate-pulse" />
+                            <div className="h-10 w-32 bg-primary/20 rounded-lg animate-pulse" />
+                        </div>
+                        <TableSkeleton columns={6} rows={8} />
+                    </div>
+                </main>
             </div>
         );
     }
@@ -97,10 +111,10 @@ export default function AdminCoursesPage() {
 
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
+        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark overflow-x-hidden">
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
-                <div className="p-8">
+                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                     {/* PageHeading */}
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
                         <div className="flex min-w-72 flex-col gap-2">
@@ -244,6 +258,7 @@ export default function AdminCoursesPage() {
                 variant="danger"
             />
 
+            <MobileNav role="admin" />
         </div>
     );
 }

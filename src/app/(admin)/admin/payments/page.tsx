@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
+import { TableSkeleton } from '@/components/ui/Skeleton';
+import { MobileNav } from '@/components/layout/Sidebar';
 
 interface Payment {
     id: string;
@@ -10,7 +12,7 @@ interface Payment {
     student_email: string;
     course_title: string;
     amount: number;
-    status: 'successful' | 'pending' | 'failed';
+    status: 'success' | 'pending' | 'failed';
     created_at: string;
     transaction_id: string;
 }
@@ -62,7 +64,7 @@ export default function PaymentsPage() {
                         student_email: item.profiles?.email || 'No Email',
                         course_title: item.courses?.title || 'Unknown Course',
                         amount: item.amount,
-                        status: item.status as 'successful' | 'pending' | 'failed', // Cast to known union type
+                        status: item.status as 'success' | 'pending' | 'failed', // Cast to known union type
                         created_at: item.created_at,
                         transaction_id: item.provider_reference || 'N/A'
                     }));
@@ -95,27 +97,73 @@ export default function PaymentsPage() {
 
     const getStatusBadge = (status: string) => {
         const styles = {
-            successful: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+            success: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
             pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
             failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
         };
         return styles[status as keyof typeof styles] || styles.pending;
     };
 
-    const totalRevenue = payments.filter(p => p.status === 'successful').reduce((sum, p) => sum + p.amount, 0);
-    const successfulCount = payments.filter(p => p.status === 'successful').length;
+    const totalRevenue = payments.filter(p => p.status === 'success').reduce((sum, p) => sum + p.amount, 0);
+    const successfulCount = payments.filter(p => p.status === 'success').length;
     const pendingCount = payments.filter(p => p.status === 'pending').length;
+
+    // Generate CSV
+    const downloadCSV = () => {
+        const headers = ['Transaction ID', 'Student Name', 'Student Email', 'Course Title', 'Amount', 'Date', 'Status'];
+        const csvContent = [
+            headers.join(','),
+            ...payments.map(payment => [
+                payment.transaction_id,
+                `"${payment.student_name}"`,
+                payment.student_email,
+                `"${payment.course_title}"`,
+                payment.amount,
+                new Date(payment.created_at).toLocaleDateString(),
+                payment.status
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `payments_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+
+
+    // ... existing code ...
 
     if (authLoading || isLoading) {
         return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+                <div className="flex-1">
+                    {/* Header Skeleton */}
+                    <div className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                    <main className="p-6 lg:p-8">
+                        <div className="max-w-7xl mx-auto space-y-8">
+                            {/* Stats Skeleton */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
+                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
+                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
+                            </div>
+                            {/* Table Skeleton */}
+                            <TableSkeleton columns={6} rows={8} />
+                        </div>
+                    </main>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
             <div className="flex-1">
                 {/* Top Header */}
                 <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 sticky top-0 z-20">
@@ -130,7 +178,7 @@ export default function PaymentsPage() {
                     </div>
                 </header>
 
-                <main className="p-6 lg:p-8">
+                <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                     <div className="max-w-7xl mx-auto">
                         {/* Page Header */}
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
@@ -138,7 +186,10 @@ export default function PaymentsPage() {
                                 <h1 className="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">Payment History</h1>
                                 <p className="text-gray-500 dark:text-gray-400 text-base mt-1">Monitor all transactions within the learning management system.</p>
                             </div>
-                            <button className="flex items-center gap-2 h-10 px-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm font-bold rounded-lg hover:bg-gray-300">
+                            <button
+                                onClick={downloadCSV}
+                                className="flex items-center gap-2 h-10 px-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm font-bold rounded-lg hover:bg-gray-300 transition-colors"
+                            >
                                 <span className="material-symbols-outlined text-base">download</span>
                                 <span>Export as CSV</span>
                             </button>
@@ -239,6 +290,8 @@ export default function PaymentsPage() {
                     </div>
                 </main>
             </div>
+
+            <MobileNav role="admin" />
         </div>
     );
 }

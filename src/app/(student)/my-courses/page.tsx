@@ -142,7 +142,7 @@ export default function MyLearningPage() {
                     onLogout={signOut}
                 />
 
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                     <div className="mb-8">
                         <h1 className="text-2xl lg:text-3xl font-display font-bold text-[var(--foreground)]">
                             My Learning
@@ -212,8 +212,8 @@ export default function MyLearningPage() {
                                     <div className="p-4 flex flex-col flex-1">
                                         <div className="mb-2">
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${course.level === 'Others' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    (course.level === 'SS1' || course.level === 'SS2') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                (course.level === 'SS1' || course.level === 'SS2') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                                                 }`}>
                                                 {course.level}
                                             </span>

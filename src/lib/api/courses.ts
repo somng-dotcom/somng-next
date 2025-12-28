@@ -326,6 +326,17 @@ export async function getAdminStats() {
         .select('*', { count: 'exact', head: true })
         .gte('enrolled_at', sevenDaysAgo.toISOString());
 
+    // Payment Stats
+    const { count: successfulTransactions } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'success');
+
+    const { count: pendingPayments } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
     const { data: payments } = await supabase
         .from('payments')
         .select('amount')
@@ -339,6 +350,8 @@ export async function getAdminStats() {
         totalEnrollments: totalEnrollments || 0,
         newEnrollments: newEnrollments || 0,
         totalRevenue: totalRevenue,
+        successfulTransactions: successfulTransactions || 0,
+        pendingPayments: pendingPayments || 0,
     };
 }
 

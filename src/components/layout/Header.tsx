@@ -36,8 +36,8 @@ export function Header({ user, onLogout }: HeaderProps) {
 
                 {/* Logo for mobile */}
                 <Link href="/" className="flex items-center gap-2 lg:hidden">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold">
-                        Σ
+                    <div className="w-8 h-8  rounded-lg flex items-center justify-center text-white font-bold">
+                        <img src="public/somng logo.jpeg" alt="" />
                     </div>
                     <span className="font-display font-bold">SOMNG</span>
                 </Link>

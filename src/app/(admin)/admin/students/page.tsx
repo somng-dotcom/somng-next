@@ -8,6 +8,7 @@ import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { createStudent, updateStudent, deleteStudent } from '@/lib/api/students';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 
 interface Student {
     id: string;
@@ -163,14 +164,25 @@ export default function StudentsPage() {
         document.body.removeChild(link);
     };
 
+
+
+    // ... existing code ...
+
     if (authLoading || isLoading) {
-        if (authLoading || isLoading) {
-            return (
-                <div className="flex h-96 items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        return (
+            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+                <div className="flex-1">
+                    {/* Header Skeleton */}
+                    <div className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
+                    <main className="p-6 lg:p-8">
+                        <div className="max-w-7xl mx-auto space-y-6">
+                            <div className="h-20 bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse w-full max-w-sm" />
+                            <TableSkeleton columns={6} rows={8} />
+                        </div>
+                    </main>
                 </div>
-            );
-        }
+            </div>
+        );
     }
 
     return (
@@ -197,7 +209,7 @@ export default function StudentsPage() {
                     </div>
                 </header>
 
-                <main className="p-6 lg:p-8">
+                <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                     <div className="max-w-7xl mx-auto">
                         {/* Page Header */}
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">

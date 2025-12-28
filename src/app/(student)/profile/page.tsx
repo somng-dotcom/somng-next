@@ -77,7 +77,7 @@ export default function ProfilePage() {
                     onLogout={signOut}
                 />
 
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                     <div className="max-w-2xl mx-auto">
                         <div className="mb-8">
                             <h1 className="text-2xl font-bold text-[var(--foreground)]">My Profile</h1>

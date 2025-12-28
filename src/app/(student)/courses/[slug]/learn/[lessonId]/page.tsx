@@ -11,6 +11,8 @@ import { useToast } from '@/components/ui/Toast';
 import { getCourseBySlug, getLessonProgress, markLessonComplete } from '@/lib/api/courses';
 import { CourseWithDetails, Lesson } from '@/types/database';
 import QuizPlayer from './QuizPlayer';
+import dynamic from 'next/dynamic';
+const VideoPlayer = dynamic(() => import('@/components/ui/VideoPlayer'), { ssr: false });
 import { Sidebar, MobileNav } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 
@@ -200,23 +202,25 @@ export default function LessonViewerPage() {
                     );
                 }
 
-                if (embedUrl.includes('youtube.com/watch?v=')) {
-                    // Extract video ID properly to handle query params like &t=
-                    const videoId = embedUrl.split('v=')[1]?.split('&')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
-                } else if (embedUrl.includes('youtu.be/')) {
-                    // Handle https://youtu.be/VIDEO_ID?si=...
-                    const videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
-                    if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+                // Determine provider based on URL logic
+                let isYoutube = false;
+                let finalUrl = embedUrl;
+
+                if (embedUrl.includes('youtube.com/watch?v=') || embedUrl.includes('youtu.be/')) {
+                    isYoutube = true;
+                    // Plyr handles standard YouTube URLs, but we extract ID for cleanliness just in case
+                    if (embedUrl.includes('youtube.com/watch?v=')) {
+                        finalUrl = embedUrl.split('v=')[1]?.split('&')[0] || embedUrl;
+                    } else if (embedUrl.includes('youtu.be/')) {
+                        finalUrl = embedUrl.split('youtu.be/')[1]?.split('?')[0] || embedUrl;
+                    }
                 }
 
                 return (
-                    <iframe
-                        src={embedUrl}
+                    <VideoPlayer
+                        url={finalUrl}
+                        provider={isYoutube ? 'youtube' : 'html5'}
                         title={currentLesson.title}
-                        className="absolute inset-0 w-full h-full rounded-lg shadow-sm bg-black"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
                     />
                 );
             case 'pdf':

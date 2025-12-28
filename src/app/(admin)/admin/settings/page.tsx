@@ -104,7 +104,7 @@ export default function SettingsPage() {
         <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
             {/* Main Content */}
             <main className="flex-1 h-full overflow-y-auto">
-                <div className="p-8 max-w-4xl mx-auto">
+                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8 max-w-4xl mx-auto">
                     {/* Breadcrumbs */}
 
 

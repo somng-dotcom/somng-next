@@ -2,6 +2,24 @@ import { createClient } from '@/lib/supabase/client';
 
 const supabase = createClient();
 
+interface QuizQuestion {
+    id?: string;
+    quiz_id?: string;
+    question_text: string;
+    question_type: 'multiple_choice' | 'true_false' | 'short_answer';
+    options: any; // JSONB - allowing flexible structure
+    correct_answer: string;
+    points: number;
+    order_index: number;
+}
+
+interface QuizUpdate {
+    title?: string;
+    passing_score?: number;
+    time_limit_minutes?: number | null;
+    is_published?: boolean;
+}
+
 export async function getQuiz(lessonId: string) {
     const { data, error } = await supabase
         .from('quizzes')
@@ -15,7 +33,7 @@ export async function getQuiz(lessonId: string) {
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows
 
     if (data?.questions) {
-        data.questions.sort((a: any, b: any) => a.order_index - b.order_index);
+        data.questions.sort((a: QuizQuestion, b: QuizQuestion) => a.order_index - b.order_index);
     }
 
     return data;
@@ -37,7 +55,7 @@ export async function createQuiz(quiz: {
     return data;
 }
 
-export async function updateQuiz(id: string, updates: any) {
+export async function updateQuiz(id: string, updates: QuizUpdate) {
     const { data, error } = await supabase
         .from('quizzes')
         .update(updates)
@@ -49,7 +67,7 @@ export async function updateQuiz(id: string, updates: any) {
     return data;
 }
 
-export async function saveQuizQuestions(quizId: string, questions: any[]) {
+export async function saveQuizQuestions(quizId: string, questions: QuizQuestion[]) {
     // 1. Delete existing questions (simple replace strategy for now)
     // In a production app, you might want to be smarter about this to preserve student answers history if needed
     // But since this is an admin editing tool, full replace is safer for consistency

@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
             </header>
 
             {/* Main Content */}
-            <main className="p-6 lg:p-8">
+            <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

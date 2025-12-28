@@ -201,6 +201,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 9. Log notification for Admin
+        await supabaseAdmin.from('notification_logs').insert({
+            type: 'course_purchase',
+            recipient_email: user.email || 'user@example.com',
+            recipient_name: user.user_metadata?.full_name || 'Student',
+            status: 'delivered', // Log only
+            sent_at: new Date().toISOString()
+        });
+
         return NextResponse.json({
             success: true,
             message: 'Payment verified and enrollment complete',

@@ -119,7 +119,7 @@ function CoursesContent() {
                     onLogout={signOut}
                 />
 
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                     <div id="catalog-filters" className="mb-6">
                         <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">All Courses</h2>
 
@@ -257,7 +257,7 @@ function CoursesLoading() {
             <Sidebar role="student" />
             <div className="lg:ml-64">
                 <Header user={null} />
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                     <div className="mb-8">
                         <div className="h-8 w-48 bg-[var(--muted)] rounded animate-pulse mb-2" />
                         <div className="h-4 w-64 bg-[var(--muted)] rounded animate-pulse" />

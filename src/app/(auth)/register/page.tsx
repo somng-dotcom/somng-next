@@ -41,6 +41,20 @@ export default function RegisterPage() {
             setError(error.message);
             setIsLoading(false);
         } else {
+            // Log new student notification
+            try {
+                await fetch('/api/notifications/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'new_student',
+                        recipient_email: email,
+                        recipient_name: fullName
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to log notification', err);
+            }
             setSuccess(true);
         }
     };

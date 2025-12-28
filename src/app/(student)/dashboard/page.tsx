@@ -150,7 +150,7 @@ export default function DashboardPage() {
                 <Sidebar role="student" />
                 <div className="lg:ml-64">
                     <Header user={null} />
-                    <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                    <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                         <div className="mb-6">
                             <Skeleton className="h-8 w-48 mb-2" />
                             <Skeleton className="h-4 w-64" />
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                     onLogout={signOut}
                 />
 
-                <main className="p-4 lg:p-6 pb-20 lg:pb-6">
+                <main className="p-4 lg:p-6 pt-16 pb-24 lg:pt-6 lg:pb-6">
                     {/* Welcome Section */}
                     <div className="mb-8">
                         <h1 className="text-2xl lg:text-3xl font-display font-bold text-[var(--foreground)]">

@@ -182,10 +182,38 @@ export function Sidebar({ role = 'student' }: SidebarProps) {
 export function MobileNav({ role = 'student' }: SidebarProps) {
     const pathname = usePathname();
     const { signOut } = useAuth();
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
+    useEffect(() => {
+        const fetchSettings = async () => {
+            const settings = await getSiteSettings();
+            if (settings?.site_logo_url) {
+                setLogoUrl(settings.site_logo_url);
+            }
+        };
+        fetchSettings();
+
+        const handleSettingsUpdate = () => fetchSettings();
+        window.addEventListener('site_settings_updated', handleSettingsUpdate);
+        return () => window.removeEventListener('site_settings_updated', handleSettingsUpdate);
+    }, []);
+
+    // Mobile nav: Key items + Notifications + Logout
     const mobileNavItems = role === 'admin'
-        ? adminNavItems.slice(0, 5)
-        : studentNavItems.slice(0, 5);
+        ? [
+            { label: 'Home', href: '/admin', icon: 'dashboard' },
+            { label: 'Courses', href: '/admin/courses', icon: 'book' },
+            { label: 'Alerts', href: '/admin/notifications', icon: 'notifications' },
+            { label: 'More', href: '/admin/settings', icon: 'menu' },
+            { label: 'Logout', href: '/logout', icon: 'logout' },
+        ]
+        : [
+            { label: 'Home', href: '/dashboard', icon: 'dashboard' },
+            { label: 'Courses', href: '/courses', icon: 'book' },
+            { label: 'Learning', href: '/my-courses', icon: 'school' },
+            { label: 'Profile', href: '/profile', icon: 'person' },
+            { label: 'Logout', href: '/logout', icon: 'logout' },
+        ];
 
     const isActive = (href: string) => {
         if (href === '/admin' || href === '/dashboard') {
@@ -195,47 +223,67 @@ export function MobileNav({ role = 'student' }: SidebarProps) {
     };
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden">
-            <div className="flex items-center justify-around py-2">
-                {mobileNavItems.map((item) => {
-                    if (item.href === '/logout') {
+        <>
+            {/* Mobile Header with Logo */}
+            <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 lg:hidden">
+                <div className="flex items-center gap-3 px-4 py-3">
+                    <div className={`${logoUrl ? 'w-10 h-10 rounded-lg' : 'w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900'} flex items-center justify-center relative overflow-hidden`}>
+                        {logoUrl ? (
+                            <div
+                                className="absolute inset-0 w-full h-full bg-contain bg-center bg-no-repeat"
+                                style={{ backgroundImage: `url(${logoUrl})` }}
+                            />
+                        ) : (
+                            <span className="text-primary-600 dark:text-primary-400 font-medium text-sm">SM</span>
+                        )}
+                    </div>
+                    <span className="text-gray-900 dark:text-gray-100 font-semibold">School of Mathematics</span>
+                </div>
+            </header>
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden overflow-x-hidden">
+                <div className="flex items-center justify-around py-2 px-1 max-w-full">
+                    {mobileNavItems.map((item) => {
+                        if (item.href === '/logout') {
+                            return (
+                                <button
+                                    key={item.href}
+                                    onClick={() => signOut()}
+                                    className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors text-gray-500 dark:text-gray-400 min-w-0"
+                                >
+                                    <span className="material-symbols-outlined text-lg">
+                                        {item.icon}
+                                    </span>
+                                    <span className="text-[10px] truncate max-w-[50px]">{item.label}</span>
+                                </button>
+                            );
+                        }
+
                         return (
-                            <button
+                            <Link
                                 key={item.href}
-                                onClick={() => signOut()}
-                                className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors text-gray-500 dark:text-gray-400"
+                                href={item.href}
+                                className={`
+                                    flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0
+                                    ${isActive(item.href)
+                                        ? 'text-primary-600 dark:text-primary-400'
+                                        : 'text-gray-500 dark:text-gray-400'
+                                    }
+                                `}
                             >
-                                <span className="material-symbols-outlined text-xl">
+                                <span
+                                    className="material-symbols-outlined text-lg"
+                                    style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
+                                >
                                     {item.icon}
                                 </span>
-                                <span className="text-xs">{item.label}</span>
-                            </button>
+                                <span className="text-[10px] truncate max-w-[50px]">{item.label}</span>
+                            </Link>
                         );
-                    }
-
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`
-                                flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors
-                                ${isActive(item.href)
-                                    ? 'text-primary-600 dark:text-primary-400'
-                                    : 'text-gray-500 dark:text-gray-400'
-                                }
-                            `}
-                        >
-                            <span
-                                className="material-symbols-outlined text-xl"
-                                style={{ fontVariationSettings: isActive(item.href) ? "'FILL' 1" : "'FILL' 0" }}
-                            >
-                                {item.icon}
-                            </span>
-                            <span className="text-xs">{item.label}</span>
-                        </Link>
-                    );
-                })}
-            </div>
-        </nav>
+                    })}
+                </div>
+            </nav>
+        </>
     );
 }

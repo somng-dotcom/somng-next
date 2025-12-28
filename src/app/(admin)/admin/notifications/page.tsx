@@ -134,6 +134,8 @@ export default function NotificationsPage() {
             case 'progress-reminder': return 'Reminder';
             case 'certificate': return 'Certificate';
             case 'announcement': return 'Announcement';
+            case 'course_purchase': return 'Course Purchase';
+            case 'new_student': return 'New Student';
             default: return type;
         }
     };

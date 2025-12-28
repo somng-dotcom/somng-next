@@ -12,8 +12,13 @@ import { LevelBadge, PremiumBadge, FreeBadge } from '@/components/ui/Badge';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import { getCourseBySlug, isUserEnrolled, enrollUser } from '@/lib/api/courses';
 import { useToast } from '@/components/ui/Toast';
-import PaystackPayment from '@/components/paystack/PaystackPayment';
-import FlutterwavePayment from '@/components/flutterwave/FlutterwavePayment';
+import dynamic from 'next/dynamic';
+
+
+const PaystackPayment = dynamic(
+    () => import('@/components/paystack/PaystackPayment'),
+    { ssr: false }
+);
 
 interface Lesson {
     id: string;
@@ -59,7 +64,6 @@ export default function CourseDetailPage() {
     const [expandedModules, setExpandedModules] = useState<string[]>([]);
 
     const slug = params.slug as string;
-    const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'flutterwave'>('paystack');
 
     useEffect(() => {
         async function loadCourseData() {
@@ -205,7 +209,7 @@ export default function CourseDetailPage() {
                     onLogout={signOut}
                 />
 
-                <main className="pb-20 lg:pb-6">
+                <main className="pt-16 pb-24 lg:pt-0 lg:pb-6">
                     {/* Hero Section */}
                     <div className="relative bg-gradient-to-br from-primary-600 to-primary-800 text-white">
                         <div className="absolute inset-0 bg-black/20" />
@@ -270,28 +274,7 @@ export default function CourseDetailPage() {
                                                 </Link>
                                             ) : course.is_premium ? (
                                                 <div className="space-y-4">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <button
-                                                            onClick={() => setPaymentMethod('paystack')}
-                                                            className={`p-2 border rounded-lg text-sm font-medium transition-colors ${paymentMethod === 'paystack'
-                                                                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20'
-                                                                : 'border-[var(--border)] hover:bg-[var(--muted)]'
-                                                                }`}
-                                                        >
-                                                            Paystack
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setPaymentMethod('flutterwave')}
-                                                            className={`p-2 border rounded-lg text-sm font-medium transition-colors ${paymentMethod === 'flutterwave'
-                                                                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20'
-                                                                : 'border-[var(--border)] hover:bg-[var(--muted)]'
-                                                                }`}
-                                                        >
-                                                            Flutterwave
-                                                        </button>
-                                                    </div>
-
-                                                    {paymentMethod === 'paystack' ? (
+                                                    <div className="space-y-4">
                                                         <PaystackPayment
                                                             email={profile?.email || user?.email || ''}
                                                             amount={course.price}
@@ -302,19 +285,7 @@ export default function CourseDetailPage() {
                                                         >
                                                             Pay with Paystack
                                                         </PaystackPayment>
-                                                    ) : (
-                                                        <FlutterwavePayment
-                                                            email={profile?.email || user?.email || ''}
-                                                            amount={course.price}
-                                                            courseId={course.id}
-                                                            onSuccess={handlePaymentSuccess}
-                                                            fullWidth
-                                                            size="lg"
-                                                            className="bg-[#f5a623] hover:bg-[#d48c15] text-white"
-                                                        >
-                                                            Pay with Flutterwave
-                                                        </FlutterwavePayment>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <Button
