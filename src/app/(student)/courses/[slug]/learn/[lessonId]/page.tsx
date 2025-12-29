@@ -301,6 +301,38 @@ export default function LessonViewerPage() {
                             <div className="w-full max-w-5xl mx-auto">
                                 <div className={`relative w-full ${currentLesson.content_type === 'video' ? 'aspect-video' : 'min-h-[400px]'} mb-6`}>
                                     {renderContent()}
+
+                                    {/* Download Button for Premium Courses */}
+                                    {course.is_premium && currentLesson.content_type === 'video' && currentLesson.content_url && (
+                                        <div className="absolute top-4 right-4 z-10">
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="bg-white/90 hover:bg-white text-gray-900 shadow-md backdrop-blur-sm"
+                                                onClick={() => {
+                                                    const url = currentLesson.content_url;
+                                                    if (!url) return;
+
+                                                    // Create a temporary anchor to trigger download
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = `Lesson-${currentLesson.order_index}-${currentLesson.title.replace(/\s+/g, '-')}.mp4`; // Suggest a filename
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+
+                                                    addToast({
+                                                        type: 'info',
+                                                        title: 'Download Started',
+                                                        message: 'Your video download should begin shortly.',
+                                                    });
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined mr-2">download</span>
+                                                Download Video
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Lesson Info & Controls */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ToastProvider } from "@/components/ui/Toast";
+import { WhatsAppSupport } from "@/components/ui/WhatsAppSupport";
 
 export const metadata: Metadata = {
   title: "School of Mathematics Nigeria",
@@ -34,6 +35,7 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             {children}
+            <WhatsAppSupport />
           </ToastProvider>
         </AuthProvider>
       </body>
