@@ -72,6 +72,7 @@ export interface Lesson {
     content_type: ContentType | null;
     content_url: string | null;
     content_text: string | null;
+    thumbnail_url: string | null;
     duration_minutes: number | null;
     order_index: number;
     is_free_preview: boolean;
@@ -238,6 +239,7 @@ export interface CreateLessonInput {
     duration_minutes?: number;
     order_index?: number;
     is_free_preview?: boolean;
+    thumbnail_url?: string;
 }
 
 export interface CreateQuizInput {

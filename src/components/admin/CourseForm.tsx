@@ -30,6 +30,7 @@ const levelOptions = [
     { value: 'SS1', label: 'SS1' },
     { value: 'SS2', label: 'SS2' },
     { value: 'SS3', label: 'SS3' },
+    { value: 'Others', label: 'Others (Custom)' },
 ];
 
 const statusOptions = [
@@ -147,9 +148,19 @@ export function CourseForm({ initialData, onSubmit, isLoading, isEdit }: CourseF
                             <Select
                                 label="Level"
                                 options={levelOptions}
-                                value={formData.level}
+                                value={levelOptions.some(opt => opt.value === formData.level) ? formData.level : 'Others'}
                                 onChange={(e) => handleChange('level', e.target.value)}
                             />
+
+                            {(formData.level === 'Others' || !levelOptions.some(opt => opt.value === formData.level)) && (
+                                <Input
+                                    label="Custom Level"
+                                    value={formData.level === 'Others' ? '' : formData.level}
+                                    onChange={(e) => handleChange('level', e.target.value)}
+                                    placeholder="Enter custom level"
+                                    required
+                                />
+                            )}
 
                             <div className="pt-4 border-t border-[var(--border)]">
                                 <label className="flex items-center gap-2 mb-4 cursor-pointer">

@@ -62,7 +62,9 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
         content_url: string;
         content_text: string;
         duration_minutes: number;
+
         is_free_preview: boolean;
+        thumbnail_url: string;
     }>({
         title: '',
         content_type: 'video',
@@ -70,6 +72,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
         content_text: '',
         duration_minutes: 0,
         is_free_preview: false,
+        thumbnail_url: '',
     });
     const [isSubmittingLesson, setIsSubmittingLesson] = useState(false);
 
@@ -270,7 +273,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                     <label className="flex flex-col">
                                         <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
                                         <select
-                                            value={courseForm.level}
+                                            value={['JAMB', 'WAEC', 'SS1', 'SS2', 'SS3'].includes(courseForm.level) ? courseForm.level : 'Others'}
                                             onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
                                             className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
                                         >
@@ -279,9 +282,21 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                             <option value="SS1">SS1</option>
                                             <option value="SS2">SS2</option>
                                             <option value="SS3">SS3</option>
-                                            <option value="Others">Others</option>
+                                            <option value="Others">Others (Custom)</option>
                                         </select>
                                     </label>
+
+                                    {(!['JAMB', 'WAEC', 'SS1', 'SS2', 'SS3'].includes(courseForm.level)) && (
+                                        <label className="flex flex-col">
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Custom Level Name</p>
+                                            <input
+                                                value={courseForm.level === 'Others' ? '' : courseForm.level}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
+                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                                placeholder="Enter custom level name"
+                                            />
+                                        </label>
+                                    )}
                                     <div className="flex flex-col gap-2">
                                         <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
                                         <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
@@ -417,7 +432,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                                                             content_url: lesson.content_url || '',
                                                                             content_text: lesson.content_text || '',
                                                                             duration_minutes: lesson.duration_minutes || 0,
-                                                                            is_free_preview: lesson.is_free_preview
+                                                                            is_free_preview: lesson.is_free_preview,
+                                                                            thumbnail_url: lesson.thumbnail_url || ''
                                                                         });
                                                                         setIsLessonModalOpen(true);
                                                                     }}
@@ -446,7 +462,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                                                     content_url: '',
                                                                     content_text: '',
                                                                     duration_minutes: 0,
-                                                                    is_free_preview: false
+                                                                    is_free_preview: false,
+                                                                    thumbnail_url: ''
                                                                 });
                                                                 setIsLessonModalOpen(true);
                                                             }}
@@ -513,6 +530,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                 size="lg"
             >
                 <form onSubmit={handleLessonSubmit} className="space-y-4">
+                    <div className="mb-4">
+                        <FileUploader
+                            label="Lesson Thumbnail"
+                            accept="image/*"
+                            currentUrl={lessonFormData.thumbnail_url}
+                            onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, thumbnail_url: url }))}
+                        />
+                    </div>
                     <label className="block">
                         <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Title</span>
                         <input

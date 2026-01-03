@@ -140,7 +140,7 @@ export default function NewCoursePage() {
                                     <label className="flex flex-col">
                                         <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Course Level</p>
                                         <select
-                                            value={courseForm.level}
+                                            value={['JAMB', 'WAEC', 'SS1', 'SS2', 'SS3'].includes(courseForm.level) ? courseForm.level : 'Others'}
                                             onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
                                             className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
                                         >
@@ -149,9 +149,21 @@ export default function NewCoursePage() {
                                             <option value="SS1">SS1</option>
                                             <option value="SS2">SS2</option>
                                             <option value="SS3">SS3</option>
-                                            <option value="Others">Others</option>
+                                            <option value="Others">Others (Custom)</option>
                                         </select>
                                     </label>
+
+                                    {(!['JAMB', 'WAEC', 'SS1', 'SS2', 'SS3'].includes(courseForm.level)) && (
+                                        <label className="flex flex-col">
+                                            <p className="text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Custom Level Name</p>
+                                            <input
+                                                value={courseForm.level === 'Others' ? '' : courseForm.level}
+                                                onChange={e => setCourseForm(prev => ({ ...prev, level: e.target.value }))}
+                                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4 text-base font-normal leading-normal"
+                                                placeholder="Enter custom level name"
+                                            />
+                                        </label>
+                                    )}
                                     <div className="flex flex-col gap-2">
                                         <p className="text-base font-medium leading-normal text-text-primary-light dark:text-text-primary-dark">Course Type</p>
                                         <div className="flex items-center justify-between rounded-lg p-1 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
