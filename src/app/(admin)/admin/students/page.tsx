@@ -213,7 +213,7 @@ export default function StudentsPage() {
                     {/* Page Header */}
                     <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                         <div className="flex flex-col gap-1">
-                            <h1 className="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">Student Account Management</h1>
+                            <h1 className="text-gray-900 dark:text-white text-2xl sm:text-3xl font-bold tracking-tight">Student Account Management</h1>
                             <p className="text-gray-500 dark:text-gray-400 text-base">View, edit, and manage all student accounts.</p>
                         </div>
                         <button

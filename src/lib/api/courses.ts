@@ -543,6 +543,7 @@ export async function createLesson(lesson: {
     duration_minutes?: number;
     order_index: number;
     is_free_preview?: boolean;
+    thumbnail_url?: string;
 }) {
     console.log('createLesson called with:', lesson);
 

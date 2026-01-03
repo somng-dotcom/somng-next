@@ -404,10 +404,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                                         <div key={lesson.id} className="flex items-center justify-between p-3 rounded-md bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark">
                                                             <div className="flex items-center gap-3">
                                                                 <span className="material-symbols-outlined cursor-grab text-text-secondary-light dark:text-text-secondary-dark">drag_indicator</span>
-                                                                <span className="material-symbols-outlined text-primary">
                                                                     {lesson.content_type === 'video' ? 'play_circle' :
                                                                         lesson.content_type === 'quiz' ? 'quiz' : 'description'}
                                                                 </span>
+                                                                {lesson.thumbnail_url && (
+                                                                    <div className="h-8 w-12 rounded bg-surface-dark border border-border-dark overflow-hidden flex-shrink-0">
+                                                                        <img src={lesson.thumbnail_url} alt="" className="h-full w-full object-cover" />
+                                                                    </div>
+                                                                )}
                                                                 <p className="text-sm text-text-primary-light dark:text-text-primary-dark font-medium">{lesson.title}</p>
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -449,190 +453,193 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    ))}
+                                            ))}
 
-                                                    <div className="mt-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                setActiveModuleId(module.id);
-                                                                setEditingLesson(null);
-                                                                setLessonFormData({
-                                                                    title: '',
-                                                                    content_type: 'video',
-                                                                    content_url: '',
-                                                                    content_text: '',
-                                                                    duration_minutes: 0,
-                                                                    is_free_preview: false,
-                                                                    thumbnail_url: ''
-                                                                });
-                                                                setIsLessonModalOpen(true);
-                                                            }}
-                                                            className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border-light dark:border-border-dark rounded-lg hover:bg-primary/5 hover:border-primary text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-lg">add</span>
-                                                            <span className="text-sm font-medium">Add Content</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    {(!course?.modules || course.modules.length === 0) && (
-                                        <div className="text-center py-8 text-text-secondary-light dark:text-text-secondary-dark bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg border-dashed">
-                                            No modules yet. Click "Add New Module" to get started.
+                                            <div className="mt-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setActiveModuleId(module.id);
+                                                        setEditingLesson(null);
+                                                        setLessonFormData({
+                                                            title: '',
+                                                            content_type: 'video',
+                                                            content_url: '',
+                                                            content_text: '',
+                                                            duration_minutes: 0,
+                                                            is_free_preview: false,
+                                                            thumbnail_url: ''
+                                                        });
+                                                        setIsLessonModalOpen(true);
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border-light dark:border-border-dark rounded-lg hover:bg-primary/5 hover:border-primary text-text-secondary-light dark:text-text-secondary-dark hover:text-primary transition-colors"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">add</span>
+                                                    <span className="text-sm font-medium">Add Content</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
+                                    ))}
+
+                                {(!course?.modules || course.modules.length === 0) && (
+                                    <div className="text-center py-8 text-text-secondary-light dark:text-text-secondary-dark bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg border-dashed">
+                                        No modules yet. Click "Add New Module" to get started.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div >
 
-            {/* Modals - Keeping existing functional modals but updating classes where relevant */}
-            <Modal
-                isOpen={isModuleModalOpen}
-                onClose={() => setIsModuleModalOpen(false)}
-                title={editingModule ? 'Edit Module' : 'Create Module'}
-            >
-                <form onSubmit={handleModuleSubmit} className="space-y-4">
-                    <label className="block">
-                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Module Title</span>
-                        <input
-                            required
-                            value={moduleFormData.title}
-                            onChange={(e) => setModuleFormData(prev => ({ ...prev, title: e.target.value }))}
-                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                            placeholder="e.g. Algebra Basics"
-                        />
-                    </label>
-                    <label className="block">
-                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Description</span>
-                        <textarea
-                            value={moduleFormData.description}
-                            onChange={(e) => setModuleFormData(prev => ({ ...prev, description: e.target.value }))}
-                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[100px]"
-                            placeholder="Module description..."
-                        />
-                    </label>
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="ghost" onClick={() => setIsModuleModalOpen(false)}>Cancel</Button>
-                        <Button type="submit">{editingModule ? 'Save Changes' : 'Create Module'}</Button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Modals - Keeping existing functional modals but updating classes where relevant */ }
+            < Modal
+    isOpen = { isModuleModalOpen }
+    onClose = {() => setIsModuleModalOpen(false)
+}
+title = { editingModule? 'Edit Module': 'Create Module' }
+    >
+    <form onSubmit={handleModuleSubmit} className="space-y-4">
+        <label className="block">
+            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Module Title</span>
+            <input
+                required
+                value={moduleFormData.title}
+                onChange={(e) => setModuleFormData(prev => ({ ...prev, title: e.target.value }))}
+                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                placeholder="e.g. Algebra Basics"
+            />
+        </label>
+        <label className="block">
+            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Description</span>
+            <textarea
+                value={moduleFormData.description}
+                onChange={(e) => setModuleFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[100px]"
+                placeholder="Module description..."
+            />
+        </label>
+        <div className="flex justify-end gap-3 mt-6">
+            <Button type="button" variant="ghost" onClick={() => setIsModuleModalOpen(false)}>Cancel</Button>
+            <Button type="submit">{editingModule ? 'Save Changes' : 'Create Module'}</Button>
+        </div>
+    </form>
+            </Modal >
 
-            <Modal
-                isOpen={isLessonModalOpen}
-                onClose={() => setIsLessonModalOpen(false)}
-                title={editingLesson ? 'Edit Lesson' : 'Add Content'}
-                size="lg"
-            >
-                <form onSubmit={handleLessonSubmit} className="space-y-4">
-                    <div className="mb-4">
-                        <FileUploader
-                            label="Lesson Thumbnail"
-                            accept="image/*"
-                            currentUrl={lessonFormData.thumbnail_url}
-                            onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, thumbnail_url: url }))}
-                        />
-                    </div>
-                    <label className="block">
-                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Title</span>
-                        <input
-                            required
-                            value={lessonFormData.title}
-                            onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
-                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                            placeholder="Lesson Title"
-                        />
-                    </label>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content Type</span>
-                            <select
-                                value={lessonFormData.content_type}
-                                onChange={(e) => setLessonFormData(prev => ({ ...prev, content_type: e.target.value as 'video' | 'text' | 'pdf' | 'quiz' }))}
-                                className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                            >
-                                <option value="video">Video</option>
-                                <option value="text">Text/Article</option>
-                                <option value="pdf">PDF Document</option>
-                                <option value="quiz">Quiz</option>
-                            </select>
-                        </label>
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Duration (min)</span>
-                            <input
-                                type="number"
-                                min="0"
-                                value={lessonFormData.duration_minutes}
-                                onChange={(e) => setLessonFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
-                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                            />
-                        </label>
-                    </div>
-
-                    {(lessonFormData.content_type === 'video' || lessonFormData.content_type === 'pdf') && (
-                        <>
-                            <FileUploader
-                                label={`Upload ${lessonFormData.content_type === 'video' ? 'Video' : 'PDF'}`}
-                                accept={lessonFormData.content_type === 'video' ? 'video/*' : 'application/pdf'}
-                                currentUrl={lessonFormData.content_url}
-                                onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, content_url: url }))}
-                            />
-                            <label className="block">
-                                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Or URL</span>
-                                <input
-                                    value={lessonFormData.content_url}
-                                    onChange={(e) => setLessonFormData(prev => ({ ...prev, content_url: e.target.value }))}
-                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
-                                    placeholder="https://..."
-                                />
-                            </label>
-                        </>
-                    )}
-
-                    {lessonFormData.content_type === 'text' && (
-                        <label className="block">
-                            <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content</span>
-                            <textarea
-                                value={lessonFormData.content_text}
-                                onChange={(e) => setLessonFormData(prev => ({ ...prev, content_text: e.target.value }))}
-                                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[200px]"
-                                placeholder="Write content..."
-                            />
-                        </label>
-                    )}
-
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={lessonFormData.is_free_preview}
-                            onChange={(e) => setLessonFormData(prev => ({ ...prev, is_free_preview: e.target.checked }))}
-                            className="rounded border-border-light dark:border-border-dark text-primary focus:ring-primary"
-                        />
-                        <span className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Free Preview</span>
-                    </label>
-
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="ghost" onClick={() => setIsLessonModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" isLoading={isSubmittingLesson}>
-                            {editingLesson ? 'Save Changes' : 'Add Content'}
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
-
-            {isQuizBuilderOpen && currentQuizLesson && (
-                <QuizBuilder
-                    lessonId={currentQuizLesson.id}
-                    lessonTitle={currentQuizLesson.title}
-                    onClose={() => setIsQuizBuilderOpen(false)}
+    <Modal
+        isOpen={isLessonModalOpen}
+        onClose={() => setIsLessonModalOpen(false)}
+        title={editingLesson ? 'Edit Lesson' : 'Add Content'}
+        size="lg"
+    >
+        <form onSubmit={handleLessonSubmit} className="space-y-4">
+            <div className="mb-4">
+                <FileUploader
+                    label="Lesson Thumbnail"
+                    accept="image/*"
+                    currentUrl={lessonFormData.thumbnail_url}
+                    onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, thumbnail_url: url }))}
                 />
+            </div>
+            <label className="block">
+                <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Title</span>
+                <input
+                    required
+                    value={lessonFormData.title}
+                    onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                    placeholder="Lesson Title"
+                />
+            </label>
+
+            <div className="grid grid-cols-2 gap-4">
+                <label className="block">
+                    <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content Type</span>
+                    <select
+                        value={lessonFormData.content_type}
+                        onChange={(e) => setLessonFormData(prev => ({ ...prev, content_type: e.target.value as 'video' | 'text' | 'pdf' | 'quiz' }))}
+                        className="form-select flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                    >
+                        <option value="video">Video</option>
+                        <option value="text">Text/Article</option>
+                        <option value="pdf">PDF Document</option>
+                        <option value="quiz">Quiz</option>
+                    </select>
+                </label>
+                <label className="block">
+                    <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Duration (min)</span>
+                    <input
+                        type="number"
+                        min="0"
+                        value={lessonFormData.duration_minutes}
+                        onChange={(e) => setLessonFormData(prev => ({ ...prev, duration_minutes: Number(e.target.value) }))}
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                    />
+                </label>
+            </div>
+
+            {(lessonFormData.content_type === 'video' || lessonFormData.content_type === 'pdf') && (
+                <>
+                    <FileUploader
+                        label={`Upload ${lessonFormData.content_type === 'video' ? 'Video' : 'PDF'}`}
+                        accept={lessonFormData.content_type === 'video' ? 'video/*' : 'application/pdf'}
+                        currentUrl={lessonFormData.content_url}
+                        onUploadComplete={(url) => setLessonFormData(prev => ({ ...prev, content_url: url }))}
+                    />
+                    <label className="block">
+                        <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Or URL</span>
+                        <input
+                            value={lessonFormData.content_url}
+                            onChange={(e) => setLessonFormData(prev => ({ ...prev, content_url: e.target.value }))}
+                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark h-12 px-4"
+                            placeholder="https://..."
+                        />
+                    </label>
+                </>
             )}
+
+            {lessonFormData.content_type === 'text' && (
+                <label className="block">
+                    <span className="block text-base font-medium leading-normal pb-2 text-text-primary-light dark:text-text-primary-dark">Content</span>
+                    <textarea
+                        value={lessonFormData.content_text}
+                        onChange={(e) => setLessonFormData(prev => ({ ...prev, content_text: e.target.value }))}
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-primary-light dark:text-text-primary-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark p-3 min-h-[200px]"
+                        placeholder="Write content..."
+                    />
+                </label>
+            )}
+
+            <label className="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    checked={lessonFormData.is_free_preview}
+                    onChange={(e) => setLessonFormData(prev => ({ ...prev, is_free_preview: e.target.checked }))}
+                    className="rounded border-border-light dark:border-border-dark text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Free Preview</span>
+            </label>
+
+            <div className="flex justify-end gap-3 mt-6">
+                <Button type="button" variant="ghost" onClick={() => setIsLessonModalOpen(false)}>Cancel</Button>
+                <Button type="submit" isLoading={isSubmittingLesson}>
+                    {editingLesson ? 'Save Changes' : 'Add Content'}
+                </Button>
+            </div>
+        </form>
+    </Modal>
+
+{
+    isQuizBuilderOpen && currentQuizLesson && (
+        <QuizBuilder
+            lessonId={currentQuizLesson.id}
+            lessonTitle={currentQuizLesson.title}
+            onClose={() => setIsQuizBuilderOpen(false)}
+        />
+    )
+}
         </>
     );
 }

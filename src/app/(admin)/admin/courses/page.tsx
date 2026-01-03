@@ -118,7 +118,7 @@ export default function AdminCoursesPage() {
                     {/* PageHeading */}
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
                         <div className="flex min-w-72 flex-col gap-2">
-                            <h1 className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Courses</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Courses</h1>
                             <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Manage your course catalog</p>
                         </div>
                         <Link href="/admin/courses/new">
