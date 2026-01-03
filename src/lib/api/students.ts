@@ -47,8 +47,33 @@ export async function createStudent(student: { email: string; full_name: string 
     return data;
 }
 
-export async function updateStudent(id: string, updates: { full_name?: string; email?: string }) {
+export async function updateStudent(id: string, updates: { full_name?: string; email?: string; role?: string }) {
     const supabase = createClient();
+
+    // Check for admin role restriction (max 2 admins)
+    if (updates.role === 'admin') {
+        const { count, error: countError } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('role', 'admin');
+
+        if (countError) throw countError;
+
+        // If there are already 2 or more admins, and we are not updating an existing admin self (which shouldn't happen here usually but good to be safe)
+        // Actually, we check if the user being updated is NOT already an admin.
+        const { data: currentUser, error: userError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', id)
+            .single();
+
+        if (userError) throw userError;
+
+        if (currentUser.role !== 'admin' && (count || 0) >= 2) {
+            throw new Error('Maximum number of admins (2) reached. You cannot promote more users to admin.');
+        }
+    }
+
     const { data, error } = await supabase
         .from('profiles')
         .update(updates)

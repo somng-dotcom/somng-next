@@ -36,7 +36,7 @@ export default function StudentsPage() {
 
     // Form/Action State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [formData, setFormData] = useState({ full_name: '', email: '' });
+    const [formData, setFormData] = useState({ full_name: '', email: '', role: 'student' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -71,7 +71,7 @@ export default function StudentsPage() {
             await createStudent(formData);
             addToast({ type: 'success', title: 'Student added successfully' });
             setIsAddModalOpen(false);
-            setFormData({ full_name: '', email: '' });
+            setFormData({ full_name: '', email: '', role: 'student' });
             loadStudents();
         } catch (error: any) {
             console.error(error);
@@ -117,7 +117,9 @@ export default function StudentsPage() {
         setSelectedStudent(student);
         setFormData({
             full_name: student.full_name || '',
-            email: student.email || ''
+
+            email: student.email || '',
+            role: student.role || 'student'
         });
         setIsEditModalOpen(true);
     };
@@ -216,7 +218,7 @@ export default function StudentsPage() {
                         </div>
                         <button
                             onClick={() => {
-                                setFormData({ full_name: '', email: '' });
+                                setFormData({ full_name: '', email: '', role: 'student' });
                                 setIsAddModalOpen(true);
                             }}
                             className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary-600 text-white text-sm font-bold hover:bg-primary-700"
@@ -415,6 +417,18 @@ export default function StudentsPage() {
                             onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         />
+                    </label>
+                    <label className="block">
+                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</span>
+                        <select
+                            value={formData.role}
+                            onChange={e => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        >
+                            <option value="student">Student</option>
+                            <option value="admin">Admin</option>
+                            <option value="instructor">Instructor</option>
+                        </select>
                     </label>
                     <div className="flex justify-end gap-3 mt-6">
                         <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
