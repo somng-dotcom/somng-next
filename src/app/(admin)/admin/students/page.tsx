@@ -51,7 +51,7 @@ export default function StudentsPage() {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('role', 'student')
+                .in('role', ['student', 'admin', 'instructor'])
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
