@@ -170,10 +170,10 @@ export default function AdminCoursesPage() {
                                 <thead className="bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark">
                                     <tr>
                                         <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Course</th>
-                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Level</th>
-                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Status</th>
-                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Price</th>
-                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark">Students</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark hidden md:table-cell">Level</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark hidden sm:table-cell">Status</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark hidden lg:table-cell">Price</th>
+                                        <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark hidden xl:table-cell">Students</th>
                                         <th className="px-6 py-4 font-medium text-text-secondary-light dark:text-text-secondary-dark text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -202,12 +202,12 @@ export default function AdminCoursesPage() {
                                                         <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-mono mt-0.5">/{course.slug}</p>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 hidden md:table-cell">
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                                         {course.level}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 hidden sm:table-cell">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                                         ${course.status === 'published' ? 'bg-success/10 text-success' :
                                                             course.status === 'draft' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' :
@@ -215,10 +215,10 @@ export default function AdminCoursesPage() {
                                                         {course.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark font-medium">
+                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark font-medium hidden lg:table-cell">
                                                     {course.is_premium ? formatPrice(course.price || 0) : 'Free'}
                                                 </td>
-                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark">
+                                                <td className="px-6 py-4 text-text-primary-light dark:text-text-primary-dark hidden xl:table-cell">
                                                     {(course.enrolled_count || 0).toLocaleString()}
                                                 </td>
                                                 <td className="px-6 py-4">

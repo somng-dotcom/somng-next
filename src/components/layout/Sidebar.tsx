@@ -75,7 +75,7 @@ export function Sidebar({ role = 'student' }: SidebarProps) {
     };
 
     return (
-        <aside className="fixed left-0 top-0 z-30 h-screen w-64 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden lg:flex">
+        <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden lg:flex">
             {/* Branding / User Info */}
             <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-200 dark:border-gray-800">
                 <div
@@ -225,7 +225,7 @@ export function MobileNav({ role = 'student' }: SidebarProps) {
     return (
         <>
             {/* Mobile Header with Logo */}
-            <header className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 lg:hidden">
+            <header className="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 lg:hidden">
                 <div className="flex items-center gap-3 px-4 py-3">
                     <div className={`${logoUrl ? 'w-10 h-10 rounded-lg' : 'w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900'} flex items-center justify-center relative overflow-hidden`}>
                         {logoUrl ? (
@@ -242,7 +242,7 @@ export function MobileNav({ role = 'student' }: SidebarProps) {
             </header>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden overflow-x-hidden">
+            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden overflow-x-hidden">
                 <div className="flex items-center justify-around py-2 px-1 max-w-full">
                     {mobileNavItems.map((item) => {
                         if (item.href === '/logout') {

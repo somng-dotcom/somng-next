@@ -231,9 +231,9 @@ export default function StudentsPage() {
                                 <thead className="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase bg-background-light/50 dark:bg-background-dark/50">
                                     <tr>
                                         <th className="px-6 py-4 font-semibold" scope="col">Student Name</th>
-                                        <th className="px-6 py-4 font-semibold" scope="col">Email</th>
-                                        <th className="px-6 py-4 font-semibold" scope="col">Role</th>
-                                        <th className="px-6 py-4 font-semibold" scope="col">Joined</th>
+                                        <th className="px-6 py-4 font-semibold hidden sm:table-cell" scope="col">Email</th>
+                                        <th className="px-6 py-4 font-semibold hidden md:table-cell" scope="col">Role</th>
+                                        <th className="px-6 py-4 font-semibold hidden lg:table-cell" scope="col">Joined</th>
                                         <th className="px-6 py-4 font-semibold text-center" scope="col">Actions</th>
                                     </tr>
                                 </thead>
@@ -261,9 +261,9 @@ export default function StudentsPage() {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">{student.email}</td>
-                                                <td className="px-6 py-4 capitalize text-text-secondary-light dark:text-text-secondary-dark">{student.role}</td>
-                                                <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">{formatDate(student.created_at)}</td>
+                                                <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark hidden sm:table-cell">{student.email}</td>
+                                                <td className="px-6 py-4 capitalize text-text-secondary-light dark:text-text-secondary-dark hidden md:table-cell">{student.role}</td>
+                                                <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark hidden lg:table-cell">{formatDate(student.created_at)}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center items-center gap-2">
                                                         <button

@@ -245,7 +245,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                     </header>
 
                     {/* Form Layout */}
-                    <div className="mt-8 grid grid-cols-3 gap-8">
+                    <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column: Course Settings */}
                         <div className="col-span-3 lg:col-span-1 flex flex-col gap-6">
                             <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
@@ -344,7 +344,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
                         </div>
 
                         {/* Right Column: Course Content Builder */}
-                        <div className="col-span-3 lg:col-span-2 flex flex-col gap-6">
+                        <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
                             <div className="p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Course Modules</h3>
