@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { TableSkeleton } from '@/components/ui/Skeleton';
-import { MobileNav } from '@/components/layout/Sidebar';
 
 interface Payment {
     id: string;
@@ -23,7 +22,6 @@ export default function PaymentsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Mock data for now - replace with actual API call
     useEffect(() => {
         if (authLoading) return;
         if (!user) return;
@@ -47,7 +45,6 @@ export default function PaymentsPage() {
                 if (error) throw error;
 
                 if (data) {
-                    // Define type for the joined query result
                     type RawPaymentDetails = {
                         id: string;
                         amount: number;
@@ -64,7 +61,7 @@ export default function PaymentsPage() {
                         student_email: item.profiles?.email || 'No Email',
                         course_title: item.courses?.title || 'Unknown Course',
                         amount: item.amount,
-                        status: item.status as 'success' | 'pending' | 'failed', // Cast to known union type
+                        status: item.status as 'success' | 'pending' | 'failed',
                         created_at: item.created_at,
                         transaction_id: item.provider_reference || 'N/A'
                     }));
@@ -108,7 +105,6 @@ export default function PaymentsPage() {
     const successfulCount = payments.filter(p => p.status === 'success').length;
     const pendingCount = payments.filter(p => p.status === 'pending').length;
 
-    // Generate CSV
     const downloadCSV = () => {
         const headers = ['Transaction ID', 'Student Name', 'Student Email', 'Course Title', 'Amount', 'Date', 'Status'];
         const csvContent = [
@@ -135,163 +131,121 @@ export default function PaymentsPage() {
         document.body.removeChild(link);
     };
 
-
-
-    // ... existing code ...
-
     if (authLoading || isLoading) {
         return (
-            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-                <div className="flex-1">
-                    {/* Header Skeleton */}
-                    <div className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" />
-                    <main className="p-6 lg:p-8">
-                        <div className="max-w-7xl mx-auto space-y-8">
-                            {/* Stats Skeleton */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
-                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
-                                <div className="h-32 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 animate-pulse" />
-                            </div>
-                            {/* Table Skeleton */}
-                            <TableSkeleton columns={6} rows={8} />
-                        </div>
-                    </main>
+            <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <div className="max-w-7xl mx-auto space-y-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="h-32 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark animate-pulse" />
+                        <div className="h-32 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark animate-pulse" />
+                        <div className="h-32 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark animate-pulse" />
+                    </div>
+                    <TableSkeleton columns={6} rows={8} />
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
-            <div className="flex-1">
-                {/* Top Header */}
-                <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 sticky top-0 z-20">
-                    <h2 className="text-gray-900 dark:text-white text-lg font-bold">Payment History</h2>
-                    <div className="flex items-center gap-4">
-                        <button className="relative rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-                            <span className="material-symbols-outlined">notifications</span>
+        <>
+            <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <div className="max-w-7xl mx-auto">
+                    {/* Header */}
+                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
+                        <div className="flex min-w-72 flex-col gap-2">
+                            <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Payment History</h1>
+                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Monitor all transactions within the platform.</p>
+                        </div>
+                        <button
+                            onClick={downloadCSV}
+                            className="flex items-center gap-2 h-10 px-4 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark border border-border-light dark:border-border-dark text-sm font-bold rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-base">download</span>
+                            <span>Export as CSV</span>
                         </button>
-                        <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center cursor-pointer" onClick={signOut}>
-                            <span className="text-primary-600 font-medium">{profile?.full_name?.charAt(0) || 'A'}</span>
+                    </header>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                        <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Total Revenue</p>
+                            <p className="text-text-primary-light dark:text-text-primary-dark text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+                            <p className="text-success text-sm font-medium">+2.5%</p>
+                        </div>
+                        <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Successful Transactions</p>
+                            <p className="text-text-primary-light dark:text-text-primary-dark text-2xl font-bold">{successfulCount}</p>
+                            <p className="text-success text-sm font-medium">+1.2%</p>
+                        </div>
+                        <div className="flex flex-col gap-2 rounded-xl p-6 border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Pending Payments</p>
+                            <p className="text-text-primary-light dark:text-text-primary-dark text-2xl font-bold">{pendingCount}</p>
+                            <p className="text-error text-sm font-medium">-0.5%</p>
                         </div>
                     </div>
-                </header>
 
-                <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
-                    <div className="max-w-7xl mx-auto">
-                        {/* Page Header */}
-                        <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
-                            <div>
-                                <h1 className="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">Payment History</h1>
-                                <p className="text-gray-500 dark:text-gray-400 text-base mt-1">Monitor all transactions within the learning management system.</p>
-                            </div>
-                            <button
-                                onClick={downloadCSV}
-                                className="flex items-center gap-2 h-10 px-4 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm font-bold rounded-lg hover:bg-gray-300 transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-base">download</span>
-                                <span>Export as CSV</span>
-                            </button>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Revenue</p>
-                                <p className="text-gray-900 dark:text-white text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-                                <p className="text-green-600 text-sm font-medium">+2.5%</p>
-                            </div>
-                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Successful Transactions</p>
-                                <p className="text-gray-900 dark:text-white text-2xl font-bold">{successfulCount}</p>
-                                <p className="text-green-600 text-sm font-medium">+1.2%</p>
-                            </div>
-                            <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Pending Payments</p>
-                                <p className="text-gray-900 dark:text-white text-2xl font-bold">{pendingCount}</p>
-                                <p className="text-red-600 text-sm font-medium">-0.5%</p>
+                    {/* Toolbar */}
+                    <div className="flex flex-wrap gap-4 mb-6">
+                        <div className="flex-grow">
+                            <div className="relative max-w-md">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark text-xl">search</span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by student or email..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full h-10 pl-10 pr-4 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark text-sm placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Toolbar */}
-                        <div className="flex flex-wrap gap-4 mb-4">
-                            <div className="flex-grow">
-                                <div className="relative max-w-md">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xl">search</span>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by student name or email..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button className="flex items-center gap-2 h-10 px-4 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50">
-                                    <span className="material-symbols-outlined text-base">filter_list</span>
-                                    <span>Filter by Course</span>
-                                </button>
-                                <button className="flex items-center gap-2 h-10 px-4 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50">
-                                    <span className="material-symbols-outlined text-base">paid</span>
-                                    <span>Filter by Status</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Table */}
-                        <div className="bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
+                    {/* Table */}
+                    <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase bg-background-light/50 dark:bg-background-dark/50">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Student</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Course</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Transaction ID</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Amount</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Date</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                    {payments.length === 0 ? (
                                         <tr>
-                                            <th className="px-6 py-3" scope="col">Student Name</th>
-                                            <th className="px-6 py-3" scope="col">Course Title</th>
-                                            <th className="px-6 py-3" scope="col">Transaction ID</th>
-                                            <th className="px-6 py-3" scope="col">Amount</th>
-                                            <th className="px-6 py-3" scope="col">Date</th>
-                                            <th className="px-6 py-3" scope="col">Status</th>
+                                            <td colSpan={6} className="px-6 py-12 text-center text-text-secondary-light">No payments found</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {isLoading ? (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center">
-                                                    <div className="flex justify-center">
-                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : payments.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No payments found</td>
-                                            </tr>
-                                        ) : (
-                                            payments.map((payment) => (
-                                                <tr key={payment.id} className="bg-white dark:bg-gray-900/50 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{payment.student_name}</td>
-                                                    <td className="px-6 py-4">{payment.course_title}</td>
-                                                    <td className="px-6 py-4 font-mono text-xs">{payment.transaction_id}</td>
-                                                    <td className="px-6 py-4 font-medium">{formatCurrency(payment.amount)}</td>
-                                                    <td className="px-6 py-4">{formatDate(payment.created_at)}</td>
+                                    ) : (
+                                        payments
+                                            .filter(p => p.student_name.toLowerCase().includes(searchQuery.toLowerCase()) || p.student_email.toLowerCase().includes(searchQuery.toLowerCase()))
+                                            .map((payment) => (
+                                                <tr key={payment.id} className="hover:bg-background-light/50 dark:hover:bg-background-dark/50 transition-colors">
                                                     <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(payment.status)}`}>
+                                                        <div className="font-medium text-text-primary-light dark:text-text-primary-dark">{payment.student_name}</div>
+                                                        <div className="text-xs text-text-secondary-light dark:text-text-secondary-dark">{payment.student_email}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">{payment.course_title}</td>
+                                                    <td className="px-6 py-4 font-mono text-xs text-text-secondary-light dark:text-text-secondary-dark">{payment.transaction_id}</td>
+                                                    <td className="px-6 py-4 font-bold text-text-primary-light dark:text-text-primary-dark">{formatCurrency(payment.amount)}</td>
+                                                    <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">{formatDate(payment.created_at)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${getStatusBadge(payment.status)}`}>
                                                             {payment.status}
                                                         </span>
                                                     </td>
                                                 </tr>
                                             ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </main>
-            </div>
-
-            <MobileNav role="admin" />
-        </div>
+                </div>
+            </main>
+        </>
     );
 }

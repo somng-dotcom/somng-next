@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { getAdminStats } from '@/lib/api/courses';
-import Link from 'next/link';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 interface TopCourse {
@@ -16,7 +15,7 @@ interface TopCourse {
 }
 
 export default function AnalyticsPage() {
-    const { profile, signOut, isLoading: isAuthLoading } = useAuth();
+    const { profile, isLoading: isAuthLoading } = useAuth();
     const [timeRange, setTimeRange] = useState('30days');
     const [stats, setStats] = useState<any>(null);
     const [topCourses, setTopCourses] = useState<TopCourse[]>([]);
@@ -24,13 +23,11 @@ export default function AnalyticsPage() {
 
     useEffect(() => {
         if (isAuthLoading) return;
-        if (!profile) return; // Wait for profile too if needed, or user. using profile is fine as useAuth loads it.
+        if (!profile) return;
 
         async function loadAnalytics() {
             try {
                 const supabase = createClient();
-
-                // Load admin stats
                 const adminStats = await getAdminStats();
                 setStats(adminStats);
 
@@ -52,7 +49,7 @@ export default function AnalyticsPage() {
                         id: course.id,
                         title: course.title,
                         enrolled_count: course.enrollments?.[0]?.count || 0,
-                        completion_rate: 0, // Would need a separate query for actual completion rates
+                        completion_rate: 0,
                         revenue: (course.enrollments?.[0]?.count || 0) * (course.price || 0)
                     }));
                     // Sort by enrolled count
@@ -66,7 +63,7 @@ export default function AnalyticsPage() {
             }
         }
         loadAnalytics();
-    }, [timeRange, isAuthLoading]);
+    }, [timeRange, isAuthLoading, profile]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
@@ -78,24 +75,21 @@ export default function AnalyticsPage() {
 
     if (isAuthLoading || isLoading) {
         return (
-            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-                <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
-                    <DashboardSkeleton />
-                </div>
+            <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <DashboardSkeleton />
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
-                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+        <>
+            <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
                         <div className="flex min-w-72 flex-col gap-2">
-                            <h1 className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Analytics</h1>
-                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Platform performance overview</p>
+                            <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Analytics Dashboard</h1>
+                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Overview of your platform's performance and student engagement.</p>
                         </div>
                         {/* Time Range Chips */}
                         <div className="flex gap-2 flex-wrap">
@@ -170,12 +164,6 @@ export default function AnalyticsPage() {
                                     </defs>
                                 </svg>
                             </div>
-                            <div className="flex justify-around border-t border-border-light dark:border-border-dark pt-2">
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 1</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 2</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 3</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 4</p>
-                            </div>
                         </div>
 
                         {/* Revenue Chart */}
@@ -197,58 +185,38 @@ export default function AnalyticsPage() {
                                     </defs>
                                 </svg>
                             </div>
-                            <div className="flex justify-around border-t border-border-light dark:border-border-dark pt-2">
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 1</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 2</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 3</p>
-                                <p className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium">Week 4</p>
-                            </div>
                         </div>
                     </div>
 
                     {/* Top Courses Table */}
                     <div className="rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark overflow-hidden">
-                        <div className="p-6">
-                            <h3 className="text-text-primary-light dark:text-text-primary-dark text-lg font-medium">Top Courses by Enrollment</h3>
-                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">Most popular courses.</p>
+                        <div className="p-6 border-b border-border-light dark:border-border-dark">
+                            <h3 className="text-text-primary-light dark:text-text-primary-dark text-lg font-bold">Top Courses by Enrollment</h3>
+                            <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">Overview of course performance.</p>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-text-secondary-light dark:text-text-secondary-dark">
-                                <thead className="text-xs text-text-primary-light dark:text-text-primary-dark uppercase bg-background-light dark:bg-background-dark">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase bg-background-light/50 dark:bg-background-dark/50">
                                     <tr>
-                                        <th className="px-6 py-3" scope="col">Course Name</th>
-                                        <th className="px-6 py-3" scope="col">Enrolled Students</th>
-                                        <th className="px-6 py-3" scope="col">Revenue Generated</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Course</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Students</th>
+                                        <th className="px-6 py-4 font-semibold" scope="col">Revenue</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {isLoading ? (
-                                        <tr>
-                                            <td colSpan={3} className="px-6 py-12 text-center">
-                                                <div className="flex justify-center">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                                                </div>
-                                            </td>
+                                <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                    {topCourses.map((course) => (
+                                        <tr key={course.id} className="hover:bg-background-light/50 dark:hover:bg-background-dark/50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark">{course.title}</td>
+                                            <td className="px-6 py-4 text-text-secondary-light dark:text-text-secondary-dark">{course.enrolled_count.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-semibold text-text-primary-light dark:text-text-primary-dark">{formatCurrency(course.revenue)}</td>
                                         </tr>
-                                    ) : topCourses.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={3} className="px-6 py-12 text-center text-text-secondary-light dark:text-text-secondary-dark">No courses found</td>
-                                        </tr>
-                                    ) : (
-                                        topCourses.map((course) => (
-                                            <tr key={course.id} className="bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark hover:bg-background-light dark:hover:bg-background-dark">
-                                                <td className="px-6 py-4 font-medium text-text-primary-light dark:text-text-primary-dark whitespace-nowrap">{course.title}</td>
-                                                <td className="px-6 py-4">{course.enrolled_count.toLocaleString()}</td>
-                                                <td className="px-6 py-4 font-medium">{formatCurrency(course.revenue)}</td>
-                                            </tr>
-                                        ))
-                                    )}
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </main>
-        </div>
+        </>
     );
 }

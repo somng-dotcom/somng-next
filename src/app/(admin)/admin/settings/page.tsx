@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FileUploader } from '@/components/ui/FileUploader';
@@ -10,10 +9,11 @@ import { useToast } from '@/components/ui/Toast';
 import { getSiteSettings, updateSiteSettings } from '@/lib/api/settings';
 import { uploadSiteLogo } from '@/lib/api/storage';
 import { SiteSettings } from '@/types/settings';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 export default function SettingsPage() {
     const { addToast } = useToast();
-    const { user, profile, isLoading: authLoading } = useAuth();
+    const { profile, isLoading: authLoading } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -26,9 +26,9 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user) return;
+        if (!profile) return;
         loadSettings();
-    }, [user, authLoading]);
+    }, [profile, authLoading]);
 
     const loadSettings = async () => {
         try {
@@ -94,27 +94,21 @@ export default function SettingsPage() {
 
     if (authLoading || isLoading) {
         return (
-            <div className="flex h-96 items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <DashboardSkeleton />
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark">
-            {/* Main Content */}
-            <main className="flex-1 h-full overflow-y-auto">
-                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8 max-w-4xl mx-auto">
-                    {/* Breadcrumbs */}
-
-
-                    {/* PageHeading */}
-                    <div className="flex flex-wrap justify-between gap-3 mb-8">
-                        <div className="flex min-w-72 flex-col gap-2">
-                            <h1 className="text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">General Site Settings</h1>
-                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Manage general LMS site information.</p>
-                        </div>
-                    </div>
+        <>
+            <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <div className="max-w-4xl mx-auto">
+                    {/* Header */}
+                    <header className="flex flex-col gap-2 border-b border-border-light dark:border-border-dark pb-6 mb-8">
+                        <h1 className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-text-primary-light dark:text-text-primary-dark">Site Settings</h1>
+                        <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">Manage your platform's configuration and branding.</p>
+                    </header>
 
                     <div className="bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark p-8 rounded-xl shadow-sm">
                         {/* Form Sections */}
@@ -210,6 +204,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </main>
-        </div>
+        </>
     );
 }

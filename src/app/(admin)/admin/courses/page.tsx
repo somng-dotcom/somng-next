@@ -111,10 +111,9 @@ export default function AdminCoursesPage() {
 
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark font-display text-text-primary-light dark:text-text-primary-dark overflow-x-hidden">
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
-                <div className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+        <>
+            <main className="p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
+                <div className="max-w-7xl mx-auto">
                     {/* PageHeading */}
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border-light dark:border-border-dark pb-6 mb-8">
                         <div className="flex min-w-72 flex-col gap-2">
@@ -257,8 +256,6 @@ export default function AdminCoursesPage() {
                 confirmText="Delete"
                 variant="danger"
             />
-
-            <MobileNav role="admin" />
-        </div>
+        </>
     );
 }
