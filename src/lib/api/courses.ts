@@ -557,6 +557,9 @@ export async function createLesson(lesson: {
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
+        // Exclude thumbnail_url as it does not exist in the database yet
+        const { thumbnail_url, ...lessonPayload } = lesson;
+
         const response = await fetch(`${url}/rest/v1/lessons`, {
             method: 'POST',
             headers: {
@@ -565,7 +568,7 @@ export async function createLesson(lesson: {
                 'Authorization': `Bearer ${key}`,
                 'Prefer': 'return=representation'
             },
-            body: JSON.stringify(lesson),
+            body: JSON.stringify(lessonPayload),
             signal: controller.signal
         });
 
@@ -593,9 +596,13 @@ export async function createLesson(lesson: {
 
 export async function updateLesson(id: string, updates: any) {
     const client = createClient();
+    
+    // Exclude thumbnail_url if present
+    const { thumbnail_url, ...safeUpdates } = updates;
+
     const { data, error } = await client
         .from('lessons')
-        .update(updates)
+        .update(safeUpdates)
         .eq('id', id)
         .select()
         .single();
