@@ -545,50 +545,19 @@ export async function createLesson(lesson: {
     is_free_preview?: boolean;
     thumbnail_url?: string;
 }) {
-    console.log('createLesson called with:', lesson);
+    const client = createClient();
+    const { data, error } = await client
+        .from('lessons')
+        .insert(lesson)
+        .select()
+        .single();
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    console.log('Making direct fetch to:', `${url}/rest/v1/lessons`);
-    console.log('Using anon key (no session)');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    try {
-        const response = await fetch(`${url}/rest/v1/lessons`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': key!,
-                'Authorization': `Bearer ${key}`,
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(lesson),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        console.log('Fetch response status:', response.status);
-
-        const data = await response.json();
-        console.log('Fetch response data:', data);
-
-        if (!response.ok) {
-            throw new Error(data.message || data.error || `HTTP ${response.status}`);
-        }
-
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timed out after 15 seconds');
-        }
-        console.error('createLesson error:', error);
+    if (error) {
+        console.error('createLesson failed:', error);
         throw error;
     }
+
+    return data;
 }
 
 export async function updateLesson(id: string, updates: any) {
