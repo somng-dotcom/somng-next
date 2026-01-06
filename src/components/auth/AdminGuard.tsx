@@ -1,7 +1,8 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Profile } from '@/types/database';
 
 interface AdminGuardProps {
@@ -25,6 +26,16 @@ interface AdminGuardProps {
  * ```
  */
 export function AdminGuard({ children, profile, isLoading }: AdminGuardProps) {
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!isLoading && !profile) {
+            const redirectUrl = new URL('/login', window.location.href);
+            redirectUrl.searchParams.set('redirect', window.location.pathname);
+            router.push(redirectUrl.toString());
+        }
+    }, [isLoading, profile, router]);
+
     // Don't block while still loading - show nothing until we know
     if (isLoading) {
         return null;
@@ -54,6 +65,11 @@ export function AdminGuard({ children, profile, isLoading }: AdminGuardProps) {
         );
     }
 
-    // Render children if user is admin or profile not loaded yet
+    // If not loading and no profile (not logged in), return null (redirecting via effect)
+    if (!profile) {
+        return null;
+    }
+
+    // Render children if user is admin
     return <>{children}</>;
 }

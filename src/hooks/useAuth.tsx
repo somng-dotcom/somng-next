@@ -84,6 +84,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
+    // Revalidate session on window focus
+    useEffect(() => {
+        const handleFocus = async () => {
+            const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+            if (error || !currentSession) {
+                // If session is invalid on focus, clear state
+                // This might be handled by onAuthStateChange, but explicit check doesn't hurt
+                if (session) {
+                    await supabase.auth.refreshSession();
+                }
+            } else if (currentSession?.access_token !== session?.access_token) {
+                // Update local session if it changed (e.g. refreshed in another tab)
+                setSession(currentSession);
+                setUser(currentSession.user);
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [session]);
+
     // Sign up
     const signUp = async (email: string, password: string, fullName: string) => {
         try {
