@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Profile } from '@/types/database';
+import { PageLoader } from '@/components/ui/PageLoader';
 
 interface AdminGuardProps {
     children: ReactNode;
@@ -36,9 +37,9 @@ export function AdminGuard({ children, profile, isLoading }: AdminGuardProps) {
         }
     }, [isLoading, profile, router]);
 
-    // Don't block while still loading - show nothing until we know
+    // Don't block while still loading - show loader
     if (isLoading) {
-        return null;
+        return <PageLoader />;
     }
 
     // If profile exists and user is NOT admin, show access denied

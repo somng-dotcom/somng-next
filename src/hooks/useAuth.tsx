@@ -84,25 +84,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
     }, []);
 
-    // Revalidate session on window focus
+    // Revalidate session on window focus and interval
     useEffect(() => {
-        const handleFocus = async () => {
+        const handleRevalidation = async () => {
+            // Don't trigger loading state for background refreshes to avoid UI flickering
+            // But for focus, maybe we want to be sure? 
+            // Actually, if we just refresh, components will update.
+
             const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
             if (error || !currentSession) {
-                // If session is invalid on focus, clear state
-                // This might be handled by onAuthStateChange, but explicit check doesn't hurt
                 if (session) {
-                    await supabase.auth.refreshSession();
+                    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                    if (refreshError || !refreshData.session) {
+                        // Truly expired
+                        if (session) signOut(); // Consistently sign out if refresh fails
+                        return;
+                    }
+                    // Refresh successful, state will update via onAuthStateChange
                 }
             } else if (currentSession?.access_token !== session?.access_token) {
-                // Update local session if it changed (e.g. refreshed in another tab)
-                setSession(currentSession);
-                setUser(currentSession.user);
+                // State will update via onAuthStateChange usually, but good to be safe
             }
         };
 
-        window.addEventListener('focus', handleFocus);
-        return () => window.removeEventListener('focus', handleFocus);
+        const onFocus = () => {
+            handleRevalidation();
+        };
+
+        window.addEventListener('focus', onFocus);
+
+        // Refresh every 4 minutes (before typical 5-10 min issues, standard token is 60m but being safe)
+        const interval = setInterval(handleRevalidation, 4 * 60 * 1000);
+
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            clearInterval(interval);
+        };
     }, [session]);
 
     // Sign up
