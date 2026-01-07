@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { getRequiredEnv } from '@/lib/utils/env';
+
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from '@/lib/api/errors';
 import { checkRateLimit } from '@/lib/utils/rate-limit';
 import { retryDatabaseOperation } from '@/lib/utils/retry';
@@ -57,14 +57,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Get environment variables with validation
-        let secretKey: string;
-        let serviceRoleKey: string;
+        const secretKey = process.env.PAYSTACK_SECRET_KEY;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        try {
-            secretKey = getRequiredEnv('PAYSTACK_SECRET_KEY');
-            serviceRoleKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
-        } catch (error) {
-            console.error('Missing required environment variables:', error);
+        if (!secretKey || !serviceRoleKey) {
+            console.error('Missing required environment variables');
             return createErrorResponse(
                 'Payment provider not configured',
                 500,
@@ -77,8 +74,8 @@ export async function POST(request: NextRequest) {
 
         // User client for authentication check
         const supabase = createServerClient(
-            getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
-            getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
                     getAll() {
@@ -132,7 +129,7 @@ export async function POST(request: NextRequest) {
 
         // Admin client for database operations (bypasses RLS)
         const supabaseAdmin = createClient(
-            getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
             serviceRoleKey,
             {
                 auth: {
