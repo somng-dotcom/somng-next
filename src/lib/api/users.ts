@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+
 
 interface ProfileUpdates {
     full_name?: string;
@@ -9,6 +9,7 @@ interface ProfileUpdates {
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdates) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('profiles')
         .update(updates)

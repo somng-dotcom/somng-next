@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+
 const COURSE_BUCKET = 'course-content';
 const PUBLIC_BUCKET = 'public';
 
@@ -9,6 +9,7 @@ export async function uploadCourseContent(file: File): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `course-content/${fileName}`; // Keep structure if needed, or just fileName
+    const supabase = createClient();
 
     // 2. Upload file
     const { error: uploadError } = await supabase.storage
@@ -34,6 +35,7 @@ export async function uploadSiteLogo(file: File): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const fileName = `site-logo-${Date.now()}.${fileExt}`;
     const filePath = `branding/${fileName}`;
+    const supabase = createClient();
 
     const { error: uploadError } = await supabase.storage
         .from(PUBLIC_BUCKET)

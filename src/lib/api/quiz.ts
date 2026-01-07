@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+
 
 interface QuizQuestion {
     id?: string;
@@ -21,6 +21,7 @@ interface QuizUpdate {
 }
 
 export async function getQuiz(lessonId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('quizzes')
         .select(`
@@ -45,6 +46,7 @@ export async function createQuiz(quiz: {
     passing_score: number;
     time_limit_minutes?: number;
 }) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('quizzes')
         .insert(quiz)
@@ -56,6 +58,7 @@ export async function createQuiz(quiz: {
 }
 
 export async function updateQuiz(id: string, updates: QuizUpdate) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('quizzes')
         .update(updates)
@@ -71,6 +74,7 @@ export async function saveQuizQuestions(quizId: string, questions: QuizQuestion[
     // 1. Delete existing questions (simple replace strategy for now)
     // In a production app, you might want to be smarter about this to preserve student answers history if needed
     // But since this is an admin editing tool, full replace is safer for consistency
+    const supabase = createClient();
     const { error: deleteError } = await supabase
         .from('quiz_questions')
         .delete()
@@ -91,6 +95,7 @@ export async function saveQuizQuestions(quizId: string, questions: QuizQuestion[
         order_index: index
     }));
 
+    // We already have client from above
     const { error: insertError } = await supabase
         .from('quiz_questions')
         .insert(questionsToInsert);
@@ -104,6 +109,7 @@ export async function getQuizByLessonId(lessonId: string) {
 }
 
 export async function getQuizQuestions(quizId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('quiz_questions')
         .select('*')
@@ -122,6 +128,7 @@ export async function submitQuizAttempt(
     passed: boolean,
     answers: Record<string, string>
 ) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('quiz_attempts')
         .insert({
@@ -141,6 +148,7 @@ export async function submitQuizAttempt(
 }
 
 export async function getUserQuizStats(userId: string) {
+    const supabase = createClient();
     const { data: attempts, error } = await supabase
         .from('quiz_attempts')
         .select('*')

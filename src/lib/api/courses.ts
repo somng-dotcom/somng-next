@@ -6,7 +6,7 @@ type Enrollment = Database['public']['Tables']['enrollments']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type LessonProgress = Database['public']['Tables']['lesson_progress']['Row'];
 
-const supabase = createClient();
+
 
 // ============================================
 // COURSES
@@ -19,6 +19,7 @@ export async function getCourses(options?: {
     search?: string;
     limit?: number;
 }) {
+    const supabase = createClient();
     // Use simpler query without count aggregations for better performance
     let query = supabase
         .from('courses')
@@ -58,6 +59,7 @@ export async function getCourses(options?: {
 }
 
 export async function getCourseBySlug(slug: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -136,6 +138,7 @@ export async function getCourseById(id: string) {
 }
 
 export async function getCourseStats() {
+    const supabase = createClient();
     const { count: totalCourses } = await supabase
         .from('courses')
         .select('*', { count: 'exact', head: true })
@@ -165,6 +168,7 @@ export async function getCourseStats() {
 // ============================================
 
 export async function getUserEnrollments(userId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('enrollments')
         .select(`
@@ -211,6 +215,7 @@ export async function getUserEnrollments(userId: string) {
 }
 
 export async function isUserEnrolled(userId: string, courseId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('enrollments')
         .select('id')
@@ -224,6 +229,7 @@ export async function isUserEnrolled(userId: string, courseId: string) {
 }
 
 export async function enrollUser(userId: string, courseId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('enrollments')
         .insert({
@@ -242,6 +248,7 @@ export async function enrollUser(userId: string, courseId: string) {
 // ============================================
 
 export async function getLessonProgress(userId: string, lessonIds: string[]) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('lesson_progress')
         .select('*')
@@ -253,6 +260,7 @@ export async function getLessonProgress(userId: string, lessonIds: string[]) {
 }
 
 export async function getCourseProgress(userId: string, courseId: string) {
+    const supabase = createClient();
     // Get all lessons for the course
     const { data: modules } = await supabase
         .from('modules')
@@ -281,6 +289,7 @@ export async function getCourseProgress(userId: string, courseId: string) {
 }
 
 export async function markLessonComplete(userId: string, lessonId: string) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('lesson_progress')
         .upsert({
@@ -303,6 +312,7 @@ export async function markLessonComplete(userId: string, lessonId: string) {
 // ============================================
 
 export async function getAdminStats() {
+    const supabase = createClient();
     const { count: totalStudents } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -356,6 +366,7 @@ export async function getAdminStats() {
 }
 
 export async function getRecentEnrollments(limit = 5) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('enrollments')
         .select(`
@@ -371,6 +382,7 @@ export async function getRecentEnrollments(limit = 5) {
 }
 
 export async function getPopularCourses(limit = 5) {
+    const supabase = createClient();
     const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -401,6 +413,7 @@ export async function getAdminCourses(options?: {
     level?: string;
     search?: string;
 }) {
+    const supabase = createClient();
     let query = supabase
         .from('courses')
         .select(`
