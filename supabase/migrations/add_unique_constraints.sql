@@ -5,18 +5,11 @@
 
 -- 1. Add unique constraint to prevent duplicate enrollments
 -- This prevents race conditions in payment verification
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'unique_user_course_enrollment'
-    ) THEN
-        ALTER TABLE enrollments 
-        ADD CONSTRAINT unique_user_course_enrollment 
-        UNIQUE (user_id, course_id) 
-        WHERE status = 'active';
-    END IF;
-END $$;
+-- 1. Add unique index to prevent duplicate enrollments (Partial Unique Constraint)
+-- This prevents race conditions in payment verification while allowing multiple cancelled/expired
+CREATE UNIQUE INDEX IF NOT EXISTS unique_user_course_enrollment 
+ON enrollments (user_id, course_id) 
+WHERE status = 'active';
 
 -- 2. Add unique constraint on provider_reference to prevent duplicate payments
 -- This ensures idempotency in payment processing
