@@ -83,9 +83,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ id: str
     // Initial Load
     useEffect(() => {
         if (authLoading) return;
-        if (!user) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         loadCourse();
-    }, [id, user, authLoading]);
+    }, [id, user, authLoading, router]);
 
     const loadCourse = async () => {
         try {

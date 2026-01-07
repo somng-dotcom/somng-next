@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -21,6 +23,7 @@ interface Student {
 
 export default function StudentsPage() {
     const { profile, signOut, user, isLoading: authLoading } = useAuth();
+    const router = useRouter();
     const { addToast } = useToast();
 
     // Data State
@@ -40,9 +43,14 @@ export default function StudentsPage() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         loadStudents();
-    }, [user, authLoading]);
+    }, [user, authLoading, router]);
 
     async function loadStudents() {
         try {

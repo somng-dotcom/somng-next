@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { MobileNav } from '@/components/layout/Sidebar';
 
@@ -50,11 +51,23 @@ export default function AdminCoursesPage() {
         }
     };
 
+    const router = useRouter();
+
     useEffect(() => {
         if (authLoading) return;
-        if (!user) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         loadCourses();
-    }, [searchQuery, statusFilter, levelFilter, user, authLoading]);
+
+        // Revalidate on focus
+        const onFocus = () => loadCourses();
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [searchQuery, statusFilter, levelFilter, user, authLoading, router]);
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-NG', {

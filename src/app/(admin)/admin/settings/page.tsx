@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +15,7 @@ import { DashboardSkeleton } from '@/components/ui/Skeleton';
 export default function SettingsPage() {
     const { addToast } = useToast();
     const { profile, isLoading: authLoading } = useAuth();
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -26,9 +28,14 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!profile) return;
+
+        if (!profile) {
+            router.push('/login');
+            return;
+        }
+
         loadSettings();
-    }, [profile, authLoading]);
+    }, [profile, authLoading, router]);
 
     const loadSettings = async () => {
         try {

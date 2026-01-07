@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getAdminStats, getRecentEnrollments } from '@/lib/api/courses';
 
@@ -14,6 +15,7 @@ interface RecentEnrollment {
 
 export default function AdminDashboardPage() {
     const { profile, signOut, user, isLoading: authLoading } = useAuth();
+    const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [enrollments, setEnrollments] = useState<RecentEnrollment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,9 +24,11 @@ export default function AdminDashboardPage() {
         // Wait for auth to be ready
         if (authLoading) return;
 
-        // If not authenticated, the sidebar/layout will handle redirect, 
-        // but we should stop here
-        if (!user) return;
+        // If not authenticated, redirect
+        if (!user) {
+            router.push('/login');
+            return;
+        }
 
         async function loadAdminData() {
             try {
@@ -41,7 +45,12 @@ export default function AdminDashboardPage() {
             }
         }
         loadAdminData();
-    }, [user, authLoading]);
+
+        // Revalidate on window focus
+        const onFocus = () => loadAdminData();
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [user, authLoading, router]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {

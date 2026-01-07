@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { TableSkeleton } from '@/components/ui/Skeleton';
@@ -18,13 +19,18 @@ interface Payment {
 
 export default function PaymentsPage() {
     const { profile, signOut, user, isLoading: authLoading } = useAuth();
+    const router = useRouter();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (authLoading) return;
-        if (!user) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
 
         async function loadPayments() {
             try {
@@ -74,7 +80,7 @@ export default function PaymentsPage() {
             }
         }
         loadPayments();
-    }, [user, authLoading]);
+    }, [user, authLoading, router]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {

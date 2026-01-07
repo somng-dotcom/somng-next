@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { getAdminStats } from '@/lib/api/courses';
@@ -16,6 +17,7 @@ interface TopCourse {
 
 export default function AnalyticsPage() {
     const { profile, isLoading: isAuthLoading } = useAuth();
+    const router = useRouter();
     const [timeRange, setTimeRange] = useState('30days');
     const [stats, setStats] = useState<any>(null);
     const [topCourses, setTopCourses] = useState<TopCourse[]>([]);
@@ -23,7 +25,11 @@ export default function AnalyticsPage() {
 
     useEffect(() => {
         if (isAuthLoading) return;
-        if (!profile) return;
+
+        if (!profile) {
+            router.push('/login');
+            return;
+        }
 
         async function loadAnalytics() {
             try {
@@ -63,7 +69,7 @@ export default function AnalyticsPage() {
             }
         }
         loadAnalytics();
-    }, [timeRange, isAuthLoading, profile]);
+    }, [timeRange, isAuthLoading, profile, router]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
