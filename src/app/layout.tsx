@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ToastProvider } from "@/components/ui/Toast";
 import { WhatsAppSupport } from "@/components/ui/WhatsAppSupport";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "School of Mathematics Nigeria",
@@ -32,12 +33,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-            <WhatsAppSupport />
-          </ToastProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ToastProvider>
+              {children}
+              <WhatsAppSupport />
+            </ToastProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

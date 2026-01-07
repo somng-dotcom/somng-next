@@ -1,227 +1,414 @@
+/**
+ * Paystack Payment Verification API Route
+ * Production-ready implementation with:
+ * - Atomic transactions
+ * - Rate limiting
+ * - Proper error handling
+ * - Idempotency
+ * - Retry logic
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { getRequiredEnv } from '@/lib/utils/env';
+import { createErrorResponse, createSuccessResponse, ErrorCodes } from '@/lib/api/errors';
+import { checkRateLimit } from '@/lib/utils/rate-limit';
+import { retryDatabaseOperation } from '@/lib/utils/retry';
+import { validatePaymentAmount, validateCurrency, validateUUID } from '@/lib/utils/validation';
 
 const PAYSTACK_VERIFY_URL = 'https://api.paystack.co/transaction/verify';
 
+/**
+ * Payment verification endpoint with production-ready features
+ */
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        // Parse request body
+        let body;
+        try {
+            body = await request.json();
+        } catch (error) {
+            return createErrorResponse(
+                'Invalid request body',
+                400,
+                ErrorCodes.INVALID_INPUT
+            );
+        }
+
         const { reference, course_id } = body;
 
-        if (!reference || !course_id) {
-            return NextResponse.json(
-                { error: 'Missing reference or course_id' },
-                { status: 400 }
+        // Validate required fields
+        if (!reference || typeof reference !== 'string' || reference.trim().length === 0) {
+            return createErrorResponse(
+                'Missing or invalid payment reference',
+                400,
+                ErrorCodes.MISSING_FIELDS
             );
         }
 
-        const secretKey = process.env.PAYSTACK_SECRET_KEY;
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!secretKey) {
-            console.error('PAYSTACK_SECRET_KEY not configured');
-            return NextResponse.json(
-                { error: 'Payment provider not configured' },
-                { status: 500 }
+        if (!course_id || !validateUUID(course_id)) {
+            return createErrorResponse(
+                'Missing or invalid course ID',
+                400,
+                ErrorCodes.MISSING_FIELDS
             );
         }
 
-        if (!serviceRoleKey) {
-            console.error('SUPABASE_SERVICE_ROLE_KEY not configured');
-            return NextResponse.json(
-                { error: 'System configuration error' },
-                { status: 500 }
+        // Get environment variables with validation
+        let secretKey: string;
+        let serviceRoleKey: string;
+        
+        try {
+            secretKey = getRequiredEnv('PAYSTACK_SECRET_KEY');
+            serviceRoleKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+        } catch (error) {
+            console.error('Missing required environment variables:', error);
+            return createErrorResponse(
+                'Payment provider not configured',
+                500,
+                ErrorCodes.INTERNAL_ERROR
             );
         }
 
-        // 1. Verify transaction with Paystack
-        const verifyResponse = await fetch(`${PAYSTACK_VERIFY_URL}/${reference}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${secretKey}`,
-                'Content-Type': 'application/json',
-            },
-        });
-
-        const verifyData = await verifyResponse.json();
-
-        if (!verifyData.status) {
-            console.error('Paystack verification failed:', verifyData);
-            return NextResponse.json(
-                { error: 'Payment verification failed', details: verifyData.message },
-                { status: 400 }
-            );
-        }
-
-        const transaction = verifyData.data;
-
-        // 2. Check transaction status
-        if (transaction.status !== 'success') {
-            return NextResponse.json(
-                { error: 'Payment was not successful', status: transaction.status },
-                { status: 400 }
-            );
-        }
-
-        // 3. Create Supabase clients
-        // User client for auth check
+        // Create Supabase clients
         const cookieStore = await cookies();
+        
+        // User client for authentication check
         const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+            getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
             {
                 cookies: {
-                    getAll() { return cookieStore.getAll(); },
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
                     setAll(cookiesToSet) {
                         try {
                             cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, options)
                             );
-                        } catch { }
+                        } catch {
+                            // Ignore cookie errors in route handlers
+                        }
                     },
                 },
             }
         );
 
-        // Admin client for DB operations (Bypass RLS)
+        // Get authenticated user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            return createErrorResponse(
+                'User not authenticated',
+                401,
+                ErrorCodes.UNAUTHORIZED
+            );
+        }
+
+        // Rate limiting per user
+        const rateLimitResult = checkRateLimit(
+            `payment-verify:${user.id}`,
+            {
+                maxRequests: 10,
+                windowMs: 60000, // 1 minute
+                blockDurationMs: 300000, // 5 minutes
+            }
+        );
+
+        if (!rateLimitResult.allowed) {
+            return createErrorResponse(
+                'Too many requests. Please try again later.',
+                429,
+                ErrorCodes.RATE_LIMIT_EXCEEDED,
+                {
+                    resetAt: rateLimitResult.resetAt,
+                    blockedUntil: rateLimitResult.blockedUntil,
+                }
+            );
+        }
+
+        // Admin client for database operations (bypasses RLS)
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
             serviceRoleKey,
             {
                 auth: {
                     autoRefreshToken: false,
-                    persistSession: false
-                }
+                    persistSession: false,
+                },
             }
         );
 
-        // 4. Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Verify transaction with Paystack API
+        let verifyResponse: Response;
+        let verifyData: any;
 
-        if (userError || !user) {
-            return NextResponse.json(
-                { error: 'User not authenticated' },
-                { status: 401 }
-            );
-        }
+        try {
+            verifyResponse = await fetch(`${PAYSTACK_VERIFY_URL}/${reference}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${secretKey}`,
+                    'Content-Type': 'application/json',
+                },
+                // Add timeout to prevent hanging requests
+                signal: AbortSignal.timeout(10000), // 10 seconds
+            });
 
-        // 5. Verify course exists and price matches (Use Admin client)
-        const { data: course, error: courseError } = await supabaseAdmin
-            .from('courses')
-            .select('id, title, price, is_premium')
-            .eq('id', course_id)
-            .single();
-
-        if (courseError || !course) {
-            return NextResponse.json(
-                { error: 'Course not found' },
-                { status: 404 }
-            );
-        }
-
-        // Verify amount matches (Paystack amount is in kobo)
-        const paidAmount = transaction.amount / 100;
-        const expectedAmount = course.price;
-
-        if (Math.abs(paidAmount - expectedAmount) > 0.01) {
-            console.error('Amount mismatch:', { paid: paidAmount, expected: expectedAmount });
-            return NextResponse.json(
-                { error: 'Payment amount does not match course price' },
-                { status: 400 }
-            );
-        }
-
-        // 6. Check if already enrolled
-        const { data: existingEnrollment } = await supabaseAdmin
-            .from('enrollments')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('course_id', course_id)
-            .single();
-
-        if (existingEnrollment) {
-            return NextResponse.json(
-                { success: true, message: 'Already enrolled', enrollment_id: existingEnrollment.id }
-            );
-        }
-
-        // 7. Record payment (Use Admin client)
-        // Check if payment already exists (idempotency)
-        const { data: existingPayment } = await supabaseAdmin
-            .from('payments')
-            .select('id')
-            .eq('provider_reference', reference.toString())
-            .single();
-
-        let paymentId = existingPayment?.id;
-
-        if (!existingPayment) {
-            const { data: payment, error: paymentError } = await supabaseAdmin
-                .from('payments')
-                .insert({
-                    user_id: user.id,
-                    course_id: course_id,
-                    amount: paidAmount,
-                    currency: transaction.currency,
-                    provider: 'paystack',
-                    provider_reference: reference.toString(),
-                    status: 'success',
-                    paid_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (paymentError) {
-                console.error('Failed to record payment:', paymentError);
-                // We continue to enrollment even if payment record fails, but log it critical
-            } else {
-                paymentId = payment?.id;
+            if (!verifyResponse.ok) {
+                console.error('Paystack API error:', verifyResponse.status, verifyResponse.statusText);
+                return createErrorResponse(
+                    'Failed to verify payment with provider',
+                    502,
+                    ErrorCodes.EXTERNAL_API_ERROR
+                );
             }
-        }
 
-        // 8. Create enrollment (Use Admin client)
-        const { data: enrollment, error: enrollmentError } = await supabaseAdmin
-            .from('enrollments')
-            .insert({
-                user_id: user.id,
-                course_id: course_id,
-                status: 'active',
-            })
-            .select()
-            .single();
-
-        if (enrollmentError) {
-            console.error('Failed to create enrollment:', enrollmentError);
-            return NextResponse.json(
-                { error: 'Failed to complete enrollment', details: enrollmentError.message },
-                { status: 500 }
+            verifyData = await verifyResponse.json();
+        } catch (error: any) {
+            console.error('Error calling Paystack API:', error);
+            if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+                return createErrorResponse(
+                    'Payment verification timeout',
+                    504,
+                    ErrorCodes.EXTERNAL_API_ERROR
+                );
+            }
+            return createErrorResponse(
+                'Failed to verify payment',
+                502,
+                ErrorCodes.EXTERNAL_API_ERROR
             );
         }
 
-        // 9. Log notification for Admin
-        await supabaseAdmin.from('notification_logs').insert({
-            type: 'course_purchase',
-            recipient_email: user.email || 'user@example.com',
-            recipient_name: user.user_metadata?.full_name || 'Student',
-            status: 'delivered', // Log only
-            sent_at: new Date().toISOString()
-        });
+        // Validate Paystack response
+        if (!verifyData.status) {
+            console.error('Paystack verification failed:', verifyData);
+            return createErrorResponse(
+                verifyData.message || 'Payment verification failed',
+                400,
+                ErrorCodes.PAYMENT_FAILED,
+                { paystackResponse: verifyData }
+            );
+        }
 
-        return NextResponse.json({
-            success: true,
-            message: 'Payment verified and enrollment complete',
-            enrollment_id: enrollment.id,
-            payment_id: paymentId,
-        });
+        const transaction = verifyData.data;
 
+        // Validate transaction status
+        if (transaction.status !== 'success') {
+            return createErrorResponse(
+                `Payment was not successful. Status: ${transaction.status}`,
+                400,
+                ErrorCodes.PAYMENT_FAILED,
+                { status: transaction.status }
+            );
+        }
+
+        // Verify course exists and get details
+        const courseResult = await retryDatabaseOperation(() =>
+            supabaseAdmin
+                .from('courses')
+                .select('id, title, price, is_premium')
+                .eq('id', course_id)
+                .single()
+        );
+
+        if (courseResult.error || !courseResult.data) {
+            return createErrorResponse(
+                'Course not found',
+                404,
+                ErrorCodes.NOT_FOUND
+            );
+        }
+
+        const course = courseResult.data;
+
+        // Validate payment amount
+        // Paystack returns amount in kobo (smallest currency unit)
+        const paidAmount = transaction.amount / 100;
+        const expectedAmount = Number(course.price);
+
+        // Validate amount with tolerance for floating point errors
+        if (Math.abs(paidAmount - expectedAmount) > 0.01) {
+            console.error('Amount mismatch:', {
+                paid: paidAmount,
+                expected: expectedAmount,
+                reference,
+                courseId: course_id,
+            });
+
+            return createErrorResponse(
+                'Payment amount does not match course price',
+                400,
+                ErrorCodes.PAYMENT_FAILED,
+                {
+                    paid: paidAmount,
+                    expected: expectedAmount,
+                }
+            );
+        }
+
+        // Validate currency
+        const currencyValidation = validateCurrency(transaction.currency || 'NGN');
+        if (!currencyValidation.isValid) {
+            console.warn('Invalid currency:', transaction.currency);
+        }
+
+        const currency = currencyValidation.isValid 
+            ? (transaction.currency || 'NGN').toUpperCase() 
+            : 'NGN';
+
+        // Process payment and enrollment using database function for atomicity
+        try {
+            const { data: result, error: rpcError } = await retryDatabaseOperation(() =>
+                supabaseAdmin.rpc('process_payment_enrollment', {
+                    p_user_id: user.id,
+                    p_course_id: course_id,
+                    p_amount: paidAmount,
+                    p_currency: currency,
+                    p_provider: 'paystack',
+                    p_provider_reference: reference.toString(),
+                })
+            );
+
+            if (rpcError) {
+                console.error('Database RPC error:', rpcError);
+                return createErrorResponse(
+                    'Failed to process enrollment',
+                    500,
+                    ErrorCodes.ENROLLMENT_FAILED,
+                    { error: rpcError.message }
+                );
+            }
+
+            // Check if already enrolled (idempotent response)
+            if (result?.already_enrolled) {
+                return createSuccessResponse(
+                    {
+                        enrollment_id: result.enrollment_id,
+                        payment_id: result.payment_id,
+                        already_enrolled: true,
+                    },
+                    200,
+                    'Already enrolled in this course'
+                );
+            }
+
+            // Success response
+            return createSuccessResponse(
+                {
+                    enrollment_id: result.enrollment_id,
+                    payment_id: result.payment_id,
+                    course_title: course.title,
+                },
+                200,
+                'Payment verified and enrollment complete'
+            );
+        } catch (error: any) {
+            // Handle unique constraint violations gracefully
+            if (error?.code === '23505') {
+                // Duplicate payment or enrollment detected
+                // Fetch existing records with proper error checking
+                const existingPayment = await supabaseAdmin
+                    .from('payments')
+                    .select('id')
+                    .eq('provider_reference', reference.toString())
+                    .single();
+
+                const existingEnrollment = await supabaseAdmin
+                    .from('enrollments')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('course_id', course_id)
+                    .eq('status', 'active')
+                    .single();
+
+                // Check if queries succeeded and have data
+                if (existingPayment.error && existingPayment.error.code !== 'PGRST116') {
+                    // Query error (PGRST116 = no rows found, which is acceptable)
+                    console.error('Error fetching existing payment:', existingPayment.error);
+                    // Continue - we'll return what we have
+                }
+
+                if (existingEnrollment.error && existingEnrollment.error.code !== 'PGRST116') {
+                    // Query error (PGRST116 = no rows found, which is acceptable)
+                    console.error('Error fetching existing enrollment:', existingEnrollment.error);
+                    // Continue - we'll return what we have
+                }
+
+                // Verify we have at least the enrollment (required)
+                // Payment might not exist if only enrollment constraint was violated
+                const paymentId = existingPayment.data?.id || null;
+                const enrollmentId = existingEnrollment.data?.id;
+
+                if (!enrollmentId) {
+                    // This shouldn't happen if we hit a 23505 on enrollments
+                    // But handle it gracefully
+                    console.warn('Unique constraint violation but enrollment not found:', {
+                        userId: user.id,
+                        courseId: course_id,
+                        reference,
+                    });
+                    
+                    // Retry the RPC call - it should handle this correctly
+                    const retryResult = await retryDatabaseOperation(() =>
+                        supabaseAdmin.rpc('process_payment_enrollment', {
+                            p_user_id: user.id,
+                            p_course_id: course_id,
+                            p_amount: paidAmount,
+                            p_currency: currency,
+                            p_provider: 'paystack',
+                            p_provider_reference: reference.toString(),
+                        })
+                    );
+
+                    if (retryResult.error) {
+                        throw retryResult.error;
+                    }
+
+                    return createSuccessResponse(
+                        {
+                            enrollment_id: retryResult.data?.enrollment_id,
+                            payment_id: retryResult.data?.payment_id,
+                            already_enrolled: retryResult.data?.already_enrolled || false,
+                        },
+                        200,
+                        retryResult.data?.already_enrolled 
+                            ? 'Payment already processed and enrollment exists'
+                            : 'Payment verified and enrollment complete'
+                    );
+                }
+
+                // Success - return existing records
+                return createSuccessResponse(
+                    {
+                        enrollment_id: enrollmentId,
+                        payment_id: paymentId,
+                        already_enrolled: true,
+                    },
+                    200,
+                    'Payment already processed and enrollment exists'
+                );
+            }
+
+            throw error; // Re-throw other errors
+        }
     } catch (error: any) {
+        // Global error handler
         console.error('Payment verification error:', error);
-        return NextResponse.json(
-            { error: 'Internal server error', details: error.message },
-            { status: 500 }
+
+        // Don't expose internal error details in production
+        const errorMessage = process.env.NODE_ENV === 'development'
+            ? error.message || 'Internal server error'
+            : 'An error occurred while processing your payment. Please contact support.';
+
+        return createErrorResponse(
+            errorMessage,
+            500,
+            ErrorCodes.INTERNAL_ERROR,
+            process.env.NODE_ENV === 'development' ? { error: error.stack } : undefined
         );
     }
 }

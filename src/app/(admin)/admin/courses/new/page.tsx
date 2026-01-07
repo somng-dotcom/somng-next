@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 
 import { createCourse } from '@/lib/api/courses';
 import { Button } from '@/components/ui/Button';
+import { validateCourseForm } from '@/lib/utils/validation';
 
 export default function NewCoursePage() {
     const { user, profile, isLoading } = useAuth();
@@ -39,9 +40,16 @@ export default function NewCoursePage() {
             return;
         }
 
-        // Validation
-        if (courseForm.is_premium && courseForm.price <= 0) {
-            addToast({ type: 'error', title: 'Validation Error', message: 'Premium courses must have a price greater than 0.' });
+        // Comprehensive validation
+        const validation = validateCourseForm(courseForm);
+        if (!validation.isValid) {
+            validation.errors.forEach(error => {
+                addToast({ 
+                    type: 'error', 
+                    title: 'Validation Error', 
+                    message: error 
+                });
+            });
             return;
         }
 

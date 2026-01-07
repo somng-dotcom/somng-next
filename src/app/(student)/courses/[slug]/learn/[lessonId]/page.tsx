@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { getCourseBySlug, getLessonProgress, markLessonComplete } from '@/lib/api/courses';
 import { CourseWithDetails, Lesson } from '@/types/database';
+import { sanitizeHTML } from '@/lib/utils/sanitize';
 import QuizPlayer from './QuizPlayer';
 import dynamic from 'next/dynamic';
 const VideoPlayer = dynamic(() => import('@/components/ui/VideoPlayer'), { ssr: false });
@@ -388,7 +389,7 @@ export default function LessonViewerPage() {
                                 {currentLesson.content_text && (
                                     <div className="mt-8 prose dark:prose-invert max-w-none">
                                         <h3>Lesson Notes</h3>
-                                        <div dangerouslySetInnerHTML={{ __html: currentLesson.content_text }} />
+                                        <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(currentLesson.content_text) }} />
                                     </div>
                                 )}
                             </div>
