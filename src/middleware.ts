@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getRequiredEnv } from '@/lib/utils/env'
 
 // Routes that require authentication
 const protectedRoutes = ['/dashboard', '/courses', '/my-courses', '/profile', '/support']
@@ -14,8 +15,8 @@ export async function middleware(request: NextRequest) {
     })
 
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+        getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
         {
             cookies: {
                 getAll() {

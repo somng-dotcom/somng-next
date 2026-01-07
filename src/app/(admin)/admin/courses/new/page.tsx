@@ -26,13 +26,11 @@ export default function NewCoursePage() {
     });
 
     if (isLoading) {
-        if (isLoading) {
-            return (
-                <div className="flex h-96 items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-                </div>
-            );
-        }
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            </div>
+        );
     }
 
     const handleCreate = async (statusOverride?: 'published' | 'draft') => {

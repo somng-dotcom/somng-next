@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS payments (
   currency TEXT DEFAULT 'NGN',
   payment_type TEXT CHECK (payment_type IN ('one_time', 'subscription')),
   subscription_plan TEXT,
-  provider TEXT CHECK (provider IN ('paystack', 'flutterwave')),
+  provider TEXT CHECK (provider IN ('paystack')),
   provider_reference TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'failed', 'refunded')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
