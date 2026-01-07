@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         // Get environment variables with validation
         let secretKey: string;
         let serviceRoleKey: string;
-        
+
         try {
             secretKey = getRequiredEnv('PAYSTACK_SECRET_KEY');
             serviceRoleKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
         // Create Supabase clients
         const cookieStore = await cookies();
-        
+
         // User client for authentication check
         const supabase = createServerClient(
             getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
@@ -207,8 +207,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify course exists and get details
-        const courseResult = await retryDatabaseOperation(() =>
-            supabaseAdmin
+        const courseResult = await retryDatabaseOperation(async () =>
+            await supabaseAdmin
                 .from('courses')
                 .select('id, title, price, is_premium')
                 .eq('id', course_id)
@@ -256,14 +256,14 @@ export async function POST(request: NextRequest) {
             console.warn('Invalid currency:', transaction.currency);
         }
 
-        const currency = currencyValidation.isValid 
-            ? (transaction.currency || 'NGN').toUpperCase() 
+        const currency = currencyValidation.isValid
+            ? (transaction.currency || 'NGN').toUpperCase()
             : 'NGN';
 
         // Process payment and enrollment using database function for atomicity
         try {
-            const { data: result, error: rpcError } = await retryDatabaseOperation(() =>
-                supabaseAdmin.rpc('process_payment_enrollment', {
+            const { data: result, error: rpcError } = await retryDatabaseOperation(async () =>
+                await supabaseAdmin.rpc('process_payment_enrollment', {
                     p_user_id: user.id,
                     p_course_id: course_id,
                     p_amount: paidAmount,
@@ -351,10 +351,10 @@ export async function POST(request: NextRequest) {
                         courseId: course_id,
                         reference,
                     });
-                    
+
                     // Retry the RPC call - it should handle this correctly
-                    const retryResult = await retryDatabaseOperation(() =>
-                        supabaseAdmin.rpc('process_payment_enrollment', {
+                    const retryResult = await retryDatabaseOperation(async () =>
+                        await supabaseAdmin.rpc('process_payment_enrollment', {
                             p_user_id: user.id,
                             p_course_id: course_id,
                             p_amount: paidAmount,
@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
                             already_enrolled: retryResult.data?.already_enrolled || false,
                         },
                         200,
-                        retryResult.data?.already_enrolled 
+                        retryResult.data?.already_enrolled
                             ? 'Payment already processed and enrollment exists'
                             : 'Payment verified and enrollment complete'
                     );
