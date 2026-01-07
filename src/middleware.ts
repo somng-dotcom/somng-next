@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getRequiredEnv } from '@/lib/utils/env'
+
 
 // Routes that require authentication
 const protectedRoutes = ['/dashboard', '/courses', '/my-courses', '/profile', '/support']
