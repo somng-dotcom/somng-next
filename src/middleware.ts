@@ -10,72 +10,105 @@ const adminRoutes = ['/admin']
 const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
 
 export async function middleware(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({
-        request,
-    })
+    try {
+        let supabaseResponse = NextResponse.next({
+            request,
+        })
 
-    const supabase = createServerClient(
-        getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
-        getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll()
+        const supabase = createServerClient(
+            getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+            getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll()
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value }) =>
+                            request.cookies.set(name, value)
+                        )
+                        supabaseResponse = NextResponse.next({
+                            request,
+                        })
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            supabaseResponse.cookies.set(name, value, options)
+                        )
+                    },
                 },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) =>
-                        request.cookies.set(name, value)
-                    )
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    })
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    )
-                },
-            },
-        }
-    )
+            }
+        )
 
-    // Refresh session if expired - required for Server Components
-    const { data: { user } } = await supabase.auth.getUser()
-    const pathname = request.nextUrl.pathname
+        // Refresh session if expired - required for Server Components
+        const { data: { user } } = await supabase.auth.getUser()
+        const pathname = request.nextUrl.pathname
 
-    // Check if route is protected
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route))
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+        // Check if route is protected
+        const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+        const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route))
+        const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
-    // Redirect unauthenticated users from protected routes
-    if ((isProtectedRoute || isAdminRoute) && !user) {
-        const redirectUrl = new URL('/login', request.url)
-        redirectUrl.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(redirectUrl)
-    }
-
-    // Redirect authenticated users away from auth pages
-    if (isAuthRoute && user) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    // Check admin access - verify user has admin role from database
-    if (isAdminRoute && user) {
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        // If profile fetch failed or user is not admin, redirect to dashboard
-        if (error || profile?.role !== 'admin') {
-            console.warn(`[Middleware] Non-admin user ${user.id} attempted to access admin route: ${pathname}`)
-            const redirectUrl = new URL('/dashboard', request.url)
-            redirectUrl.searchParams.set('unauthorized', 'admin')
+        // Redirect unauthenticated users from protected routes
+        if ((isProtectedRoute || isAdminRoute) && !user) {
+            const redirectUrl = new URL('/login', request.url)
+            redirectUrl.searchParams.set('redirect', pathname)
             return NextResponse.redirect(redirectUrl)
         }
-    }
 
-    return supabaseResponse
+        // Redirect authenticated users away from auth pages
+        if (isAuthRoute && user) {
+            return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+
+        // Check admin access - verify user has admin role from database
+        if (isAdminRoute && user) {
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            // If profile fetch failed or user is not admin, redirect to dashboard
+            if (error || profile?.role !== 'admin') {
+                console.warn(`[Middleware] Non-admin user ${user.id} attempted to access admin route: ${pathname}`)
+                const redirectUrl = new URL('/dashboard', request.url)
+                redirectUrl.searchParams.set('unauthorized', 'admin')
+                return NextResponse.redirect(redirectUrl)
+            }
+        }
+
+        return supabaseResponse
+    } catch (error: any) {
+        // Handle Supabase Auth errors gracefully
+        if (error?.code === 'refresh_token_not_found' ||
+            error?.message?.includes('Refresh Token Not Found') ||
+            (error?.code === '400' && error?.message?.includes('Refresh Token'))) {
+
+            console.warn('Invalid refresh token detected. Clearing session and redirecting to login.');
+
+            // Create response to clear cookies and redirect
+            const response = NextResponse.redirect(new URL('/login', request.url));
+
+            // Clear all Supabase cookies
+            const cookies = request.cookies.getAll();
+            cookies.forEach(cookie => {
+                if (cookie.name.startsWith('sb-')) {
+                    response.cookies.delete(cookie.name);
+                }
+            });
+
+            return response;
+        }
+
+        console.error('Middleware execution failed:', error);
+        return new NextResponse(
+            JSON.stringify({
+                error: 'Middleware Error',
+                message: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            }),
+            { status: 500, headers: { 'content-type': 'application/json' } }
+        );
+    }
 }
 
 export const config = {
