@@ -77,11 +77,12 @@ export async function middleware(request: NextRequest) {
         }
 
         return supabaseResponse
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Handle Supabase Auth errors gracefully
-        if (error?.code === 'refresh_token_not_found' ||
-            error?.message?.includes('Refresh Token Not Found') ||
-            (error?.code === '400' && error?.message?.includes('Refresh Token'))) {
+        const err = error as { code?: string; message?: string };
+        if (err?.code === 'refresh_token_not_found' ||
+            err?.message?.includes('Refresh Token Not Found') ||
+            (err?.code === '400' && err?.message?.includes('Refresh Token'))) {
 
             console.warn('Invalid refresh token detected. Clearing session and redirecting to login.');
 
@@ -100,11 +101,15 @@ export async function middleware(request: NextRequest) {
         }
 
         console.error('Middleware execution failed:', error);
+
+        const errorMessage = err?.message || 'Unknown middleware error';
+        const errorStack = (error as Error)?.stack;
+
         return new NextResponse(
             JSON.stringify({
                 error: 'Middleware Error',
-                message: error.message,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                message: errorMessage,
+                stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
             }),
             { status: 500, headers: { 'content-type': 'application/json' } }
         );

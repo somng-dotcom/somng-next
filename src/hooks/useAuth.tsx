@@ -48,21 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     useEffect(() => {
         const initAuth = async () => {
-            console.log('[Auth] Initializing...');
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                console.log('[Auth] Session fetched:', session ? 'Found' : 'Null');
                 setSession(session);
                 setUser(session?.user ?? null);
 
                 if (session?.user) {
-                    console.log('[Auth] User found, fetching profile...');
                     await fetchProfile(session.user.id);
                 }
             } catch (error) {
-                console.error('[Auth] Error initializing auth:', error);
+                console.error('Error initializing auth:', error);
             } finally {
-                console.log('[Auth] Initialization complete, isLoading -> false');
                 setIsLoading(false);
             }
         };
@@ -72,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                console.log('[Auth] onAuthStateChange:', event, session ? 'Session found' : 'No session');
                 setSession(session);
                 setUser(session?.user ?? null);
 
