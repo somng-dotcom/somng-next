@@ -24,6 +24,55 @@ export default function PaymentsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
+    async function loadPayments(silent = false) {
+        if (!silent) setIsLoading(true);
+        try {
+            const supabase = createClient();
+            const { data, error } = await supabase
+                .from('payments')
+                .select(`
+                    id,
+                    amount,
+                    status,
+                    created_at,
+                    provider_reference,
+                    profiles:user_id (full_name, email),
+                    courses:course_id (title)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (data) {
+                type RawPaymentDetails = {
+                    id: string;
+                    amount: number;
+                    status: string;
+                    created_at: string;
+                    provider_reference: string | null;
+                    profiles: { full_name: string | null; email: string } | null;
+                    courses: { title: string } | null;
+                };
+
+                const formattedPayments: Payment[] = (data as unknown as RawPaymentDetails[]).map((item) => ({
+                    id: item.id,
+                    student_name: item.profiles?.full_name || 'Unknown Student',
+                    student_email: item.profiles?.email || 'No Email',
+                    course_title: item.courses?.title || 'Unknown Course',
+                    amount: item.amount,
+                    status: item.status as 'success' | 'pending' | 'failed',
+                    created_at: item.created_at,
+                    transaction_id: item.provider_reference || 'N/A'
+                }));
+                setPayments(formattedPayments);
+            }
+        } catch (error) {
+            console.error('Failed to load payments:', error);
+        } finally {
+            if (!silent) setIsLoading(false);
+        }
+    }
+
     useEffect(() => {
         if (authLoading) return;
 
@@ -32,54 +81,12 @@ export default function PaymentsPage() {
             return;
         }
 
-        async function loadPayments() {
-            try {
-                const supabase = createClient();
-                const { data, error } = await supabase
-                    .from('payments')
-                    .select(`
-                        id,
-                        amount,
-                        status,
-                        created_at,
-                        provider_reference,
-                        profiles:user_id (full_name, email),
-                        courses:course_id (title)
-                    `)
-                    .order('created_at', { ascending: false });
+        loadPayments(false);
 
-                if (error) throw error;
-
-                if (data) {
-                    type RawPaymentDetails = {
-                        id: string;
-                        amount: number;
-                        status: string;
-                        created_at: string;
-                        provider_reference: string | null;
-                        profiles: { full_name: string | null; email: string } | null;
-                        courses: { title: string } | null;
-                    };
-
-                    const formattedPayments: Payment[] = (data as unknown as RawPaymentDetails[]).map((item) => ({
-                        id: item.id,
-                        student_name: item.profiles?.full_name || 'Unknown Student',
-                        student_email: item.profiles?.email || 'No Email',
-                        course_title: item.courses?.title || 'Unknown Course',
-                        amount: item.amount,
-                        status: item.status as 'success' | 'pending' | 'failed',
-                        created_at: item.created_at,
-                        transaction_id: item.provider_reference || 'N/A'
-                    }));
-                    setPayments(formattedPayments);
-                }
-            } catch (error) {
-                console.error('Failed to load payments:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        loadPayments();
+        // Revalidate on focus
+        const onFocus = () => loadPayments(true);
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
     }, [user, authLoading, router]);
 
     const formatCurrency = (amount: number) => {

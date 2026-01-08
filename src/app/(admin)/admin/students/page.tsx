@@ -41,18 +41,8 @@ export default function StudentsPage() {
     const [formData, setFormData] = useState({ full_name: '', email: '', role: 'student' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (authLoading) return;
-
-        if (!user) {
-            router.push('/login');
-            return;
-        }
-
-        loadStudents();
-    }, [user, authLoading, router]);
-
-    async function loadStudents() {
+    async function loadStudents(silent = false) {
+        if (!silent) setIsLoading(true);
         try {
             const supabase = createClient();
             const { data, error } = await supabase
@@ -67,9 +57,25 @@ export default function StudentsPage() {
             console.error('Failed to load students:', error);
             addToast({ type: 'error', title: 'Failed to load students' });
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     }
+
+    useEffect(() => {
+        if (authLoading) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        loadStudents(false);
+
+        // Revalidate on focus
+        const onFocus = () => loadStudents(true);
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [user, authLoading, router]);
 
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

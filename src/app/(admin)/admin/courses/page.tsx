@@ -34,8 +34,8 @@ export default function AdminCoursesPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
-    const loadCourses = async () => {
-        setIsLoading(true);
+    const loadCourses = async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
             const data = await getAdminCourses({
                 search: searchQuery,
@@ -47,7 +47,7 @@ export default function AdminCoursesPage() {
             console.error('Failed to load courses:', error);
             addToast({ type: 'error', title: 'Failed to load courses' });
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
@@ -61,10 +61,10 @@ export default function AdminCoursesPage() {
             return;
         }
 
-        loadCourses();
+        loadCourses(false);
 
         // Revalidate on focus
-        const onFocus = () => loadCourses();
+        const onFocus = () => loadCourses(true);
         window.addEventListener('focus', onFocus);
         return () => window.removeEventListener('focus', onFocus);
     }, [searchQuery, statusFilter, levelFilter, user, authLoading, router]);

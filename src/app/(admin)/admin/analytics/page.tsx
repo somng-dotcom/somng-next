@@ -16,60 +16,67 @@ interface TopCourse {
 }
 
 export default function AnalyticsPage() {
-    const { profile, isLoading: isAuthLoading } = useAuth();
+    const { profile, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [timeRange, setTimeRange] = useState('30days');
     const [stats, setStats] = useState<any>(null);
     const [topCourses, setTopCourses] = useState<TopCourse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    async function loadAnalytics(silent = false) {
+        if (!silent) setIsLoading(true);
+        try {
+            const supabase = createClient();
+            const adminStats = await getAdminStats();
+            setStats(adminStats);
+
+            // Load top courses by enrollment
+            const { data: courses, error } = await supabase
+                .from('courses')
+                .select(`
+                    id,
+                    title,
+                    price,
+                    enrollments:enrollments(count)
+                `)
+                .eq('status', 'published')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (!error && courses) {
+                const formattedCourses = courses.map((course: any) => ({
+                    id: course.id,
+                    title: course.title,
+                    enrolled_count: course.enrollments?.[0]?.count || 0,
+                    completion_rate: 0,
+                    revenue: (course.enrollments?.[0]?.count || 0) * (course.price || 0)
+                }));
+                // Sort by enrolled count
+                formattedCourses.sort((a, b) => b.enrolled_count - a.enrolled_count);
+                setTopCourses(formattedCourses.slice(0, 5));
+            }
+        } catch (error) {
+            console.error('Failed to load analytics:', error);
+        } finally {
+            if (!silent) setIsLoading(false);
+        }
+    }
+
     useEffect(() => {
-        if (isAuthLoading) return;
+        if (authLoading) return;
 
         if (!profile) {
             router.push('/login');
             return;
         }
 
-        async function loadAnalytics() {
-            try {
-                const supabase = createClient();
-                const adminStats = await getAdminStats();
-                setStats(adminStats);
+        loadAnalytics(false);
 
-                // Load top courses by enrollment
-                const { data: courses, error } = await supabase
-                    .from('courses')
-                    .select(`
-                        id,
-                        title,
-                        price,
-                        enrollments:enrollments(count)
-                    `)
-                    .eq('status', 'published')
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-
-                if (!error && courses) {
-                    const formattedCourses = courses.map((course: any) => ({
-                        id: course.id,
-                        title: course.title,
-                        enrolled_count: course.enrollments?.[0]?.count || 0,
-                        completion_rate: 0,
-                        revenue: (course.enrollments?.[0]?.count || 0) * (course.price || 0)
-                    }));
-                    // Sort by enrolled count
-                    formattedCourses.sort((a, b) => b.enrolled_count - a.enrolled_count);
-                    setTopCourses(formattedCourses.slice(0, 5));
-                }
-            } catch (error) {
-                console.error('Failed to load analytics:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        loadAnalytics();
-    }, [timeRange, isAuthLoading, profile, router]);
+        // Revalidate on focus
+        const onFocus = () => loadAnalytics(true);
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [timeRange, authLoading, profile, router]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
@@ -79,7 +86,7 @@ export default function AnalyticsPage() {
         }).format(amount);
     };
 
-    if (isAuthLoading || isLoading) {
+    if (authLoading || isLoading) {
         return (
             <div className="flex-1 p-4 lg:p-8 pt-16 pb-24 lg:pt-8 lg:pb-8">
                 <DashboardSkeleton />

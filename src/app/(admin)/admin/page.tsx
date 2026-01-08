@@ -30,7 +30,8 @@ export default function AdminDashboardPage() {
             return;
         }
 
-        async function loadAdminData() {
+        async function loadAdminData(silent = false) {
+            if (!silent) setIsLoading(true);
             try {
                 const [statsData, enrollmentsData] = await Promise.all([
                     getAdminStats(),
@@ -41,13 +42,13 @@ export default function AdminDashboardPage() {
             } catch (error) {
                 console.error('Failed to load admin data:', error);
             } finally {
-                setIsLoading(false);
+                if (!silent) setIsLoading(false);
             }
         }
-        loadAdminData();
+        loadAdminData(false);
 
         // Revalidate on window focus
-        const onFocus = () => loadAdminData();
+        const onFocus = () => loadAdminData(true);
         window.addEventListener('focus', onFocus);
         return () => window.removeEventListener('focus', onFocus);
     }, [user, authLoading, router]);
